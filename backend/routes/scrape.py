@@ -154,14 +154,42 @@ def scrape_url():
     content = try_fetch(SCRAPE_HEADERS_BOT)
     if content is None:
         content = try_fetch(SCRAPE_HEADERS_BROWSER)
-    if content is None:
+    # a 200 can still be an anti-bot interstitial (zara.com serves a stub that a browser
+    # would answer with a POST the plain client can't do); that counts as a failed fetch,
+    # only the impersonated client can play the challenge (see verify_interstitial)
+    if content is None or b"/_sec/verify?provider=interstitial" in content:
         try:
-            content = impersonated_fetch(url, SCRAPE_HEADERS_BROWSER)
+            impersonated = impersonated_fetch(url, SCRAPE_HEADERS_BROWSER)
+            if impersonated is not None:
+                content = impersonated
         except requests.RequestException:
-            content = None
+            pass
     if content is None:
         return jsonify({"error": "Could not fetch that URL"}), 400
 
+    result = extract_from_html(content)
+
+    # shops behind bot protection (e.g. Shopify) sometimes let the plain client through
+    # with a page stripped of the price; one more attempt through the impersonated client
+    # fills it in. Only the price triggers the retry: a page without image data in its
+    # og tags wouldn't carry any after a refetch either, and that would retry forever
+    if not is_amazon_url(url) and result.get("price") is None:
+        try:
+            retry_content = impersonated_fetch(url, SCRAPE_HEADERS_BROWSER)
+        except requests.RequestException:
+            retry_content = None
+        if retry_content is not None:
+            merge_extraction(result, extract_from_html(retry_content))
+
+    if is_amazon_url(url):
+        enrich_from_amazon_mobile(result, url)
+
+    return jsonify(result)
+
+
+def extract_from_html(content):
+    """Title, image, brand and price from a product page's og tags and JSON-LD data.
+    Every field is None when the page doesn't carry it."""
     soup = BeautifulSoup(content, "html.parser")
 
     def meta(*keys):
@@ -180,23 +208,43 @@ def scrape_url():
     og_is_generic = og_title is not None and og_title == og_description
     fallback_title = soup.title.string.strip() if soup.title and soup.title.string else None
 
+    og_image = None if og_is_generic else meta("og:image", "og:image:url")
+    jsonld_image_url = jsonld_image(products)
+    # some shops publish og:image over plain http (Shopify does) while their JSON-LD
+    # carries the same image over https: prefer the https one, the wishlist frontend
+    # runs on https pages and browsers block http images there as mixed content
+    if og_image and og_image.startswith("http://") and jsonld_image_url and jsonld_image_url.startswith("https://"):
+        og_image = jsonld_image_url
+
     result = {
         "title": (None if og_is_generic else og_title) or jsonld_value(products, "name") or fallback_title,
-        "image_url": (None if og_is_generic else meta("og:image", "og:image:url")) or jsonld_image(products),
+        "image_url": og_image or jsonld_image_url,
         "brand": meta("product:brand", "og:brand") or jsonld_brand(products),
     }
 
-    price = meta("product:price:amount", "og:price:amount") or jsonld_price(products)
+    # the JSON-LD offer is the price of the product's main variant (Shopify's og meta
+    # carries the cheapest variant instead), so it wins over the og meta price; the
+    # meta price is parsed like rendered text because it can read "61,95"
+    price = jsonld_price(products)
+    if price is None:
+        price = parse_price_text(meta("product:price:amount", "og:price:amount") or "")
     if price is not None:
         try:
             result["price"] = float(price)
         except (TypeError, ValueError):
             pass
 
-    if is_amazon_url(url):
-        enrich_from_amazon_mobile(result, url)
+    return result
 
-    return jsonify(result)
+
+def merge_extraction(result, extra):
+    """Fills the fields result is missing with the ones a second extraction found.
+    Nothing already present gets overwritten: the first fetch's view of a page is as
+    good as a retry's, and the retry is only there for what went missing."""
+    for key in ("title", "image_url", "brand", "price"):
+        if result.get(key) is None and extra.get(key) is not None:
+            result[key] = extra[key]
+    return result
 
 
 def fetch_page(session, url, headers):
@@ -221,30 +269,42 @@ def fetch_page(session, url, headers):
         response.raise_for_status()
         # product price data (JSON-LD) is often placed in <body>, not <head>, so read
         # a generous prefix rather than stopping at </head>
-        chunks = bytearray()
-        for chunk in response.iter_content(chunk_size=64 * 1024):
-            chunks += chunk
-            if len(chunks) >= SCRAPE_MAX_BYTES:
-                break
-        return bytes(chunks)
+        return read_limited(response)
     raise requests.RequestException("Too many redirects")
+
+
+def read_limited(response):
+    """Reads at most SCRAPE_MAX_BYTES of a streamed response body and closes it."""
+    # product price data (JSON-LD) is often placed in <body>, not <head>, so read
+    # a generous prefix rather than stopping at </head>
+    chunks = bytearray()
+    for chunk in response.iter_content(chunk_size=64 * 1024):
+        chunks += chunk
+        if len(chunks) >= SCRAPE_MAX_BYTES:
+            break
+    response.close()
+    return bytes(chunks)
 
 
 def impersonated_fetch(url, headers):
     """Last resort for shops that answer every plain-HTTP client with a bot-block page
-    (e.g. kaufland.it behind a Cloudflare challenge): fetches url through curl_cffi
-    speaking TLS with Chrome's fingerprint. Returns at most SCRAPE_MAX_BYTES of the body,
-    raises requests.RequestException on any problem, and returns None when curl_cffi
-    isn't installed.
+    (e.g. kaufland.it behind a Cloudflare challenge, zara.com behind its interstitial):
+    fetches url through curl_cffi speaking TLS with Chrome's fingerprint. Returns at most
+    SCRAPE_MAX_BYTES of the body, raises requests.RequestException on any problem, and
+    returns None when curl_cffi isn't installed.
 
     The public-address rule survives the switch of HTTP client: every hop is resolved
     with resolve_public_ips() and pinned via CURLOPT_RESOLVE, so libcurl cannot connect
-    anywhere else even while following redirects."""
+    anywhere else even while following redirects. A session per host carries the state
+    (cookies) that anti-bot pages check, and hands its cookie jar to the next host's
+    session when a redirect changes domain."""
     try:
         from curl_cffi import requests as impersonated_requests
         from curl_cffi.const import CurlOpt
     except ImportError:
         return None
+    session = None
+    session_host = None
     current_url = url
     for _ in range(MAX_SCRAPE_REDIRECTS + 1):
         parsed = urlparse(current_url)
@@ -252,17 +312,25 @@ def impersonated_fetch(url, headers):
         if ips is None:
             raise requests.RequestException(f"Refusing to fetch {current_url}: not a public address")
         port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        if session is None or parsed.hostname != session_host:
+            # CURLOPT_RESOLVE is fixed when the session is created, so a redirect to
+            # another host needs a fresh session; the cookie jar travels along because
+            # anti-bot pages may set cookies the next host still checks
+            session = impersonated_requests.Session(
+                impersonate="chrome",
+                curl_options={CurlOpt.RESOLVE: [f"{parsed.hostname}:{port}:{ip}" for ip in ips]},
+                cookies=session.cookies if session is not None else None,
+            )
+            session_host = parsed.hostname
         try:
-            response = impersonated_requests.get(
+            response = session.get(
                 current_url,
                 headers=headers,
                 # 10s instead of the 5s elsewhere: the challenge-fronted CDN answers
                 # slower on the cold TLS handshake this path always pays for
                 timeout=10,
-                impersonate="chrome",
                 allow_redirects=False,
                 stream=True,
-                curl_options={CurlOpt.RESOLVE: [f"{parsed.hostname}:{port}:{ip}" for ip in ips]},
             )
         except Exception as error:
             # curl_cffi raises its own error types; normalize them for the caller
@@ -279,34 +347,76 @@ def impersonated_fetch(url, headers):
         if response.status_code >= 400:
             response.close()
             raise requests.RequestException(f"HTTP {response.status_code}")
-        chunks = bytearray()
-        for chunk in response.iter_content(chunk_size=64 * 1024):
-            chunks += chunk
-            if len(chunks) >= SCRAPE_MAX_BYTES:
-                break
-        response.close()
-        return bytes(chunks)
+        content = read_limited(response)
+        if b"/_sec/verify?provider=interstitial" in content:
+            # zara.com fronts every first visit with an interstitial; playing along
+            # turns it into the real page in one more round trip
+            content = verify_interstitial(session, current_url, content, headers) or content
+        return content
     raise requests.RequestException("Too many redirects")
 
 
-# "19,95€", "1.234,56 €": European prices put the decimal comma last, dots appear only
-# as thousand separators
-PRICE_TEXT_RE = re.compile(r"\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:,\d{1,2})?")
+def verify_interstitial(session, current_url, content, headers):
+    """Replays zara.com's interstitial challenge: the blocked body carries a tiny
+    arithmetic puzzle (var i = N; var j = i + Number("a" + "b")) plus a bm-verify token,
+    which a browser solves and POSTs to /_sec/verify before getting the real page for
+    the same URL. The POST and the refetch run over the same session (same host, so the
+    same pinned addresses) so the cookies issued in between stick. Returns the re-fetched
+    body, or None when the body isn't such an interstitial or the replay doesn't work
+    out, leaving the blocked body to the generic extraction."""
+    power = re.search(r'var i = (\d+); var j = i \+ Number\("(\d+)" \+ "(\d+)"\);', content.decode("utf-8", "replace"))
+    token = re.search(r'"bm-verify":\s*"([^"]+)"', content.decode("utf-8", "replace"))
+    if not power or not token:
+        return None
+    answer = str(int(power.group(1)) + int(power.group(2) + power.group(3)))
+    try:
+        response = session.post(
+            urljoin(current_url, "/_sec/verify?provider=interstitial"),
+            json={"bm-verify": token.group(1), "pow-response": answer},
+            timeout=10,
+        )
+        reloaded = json.loads(response.text).get("reload") is True
+        response.close()
+        if not reloaded:
+            return None
+        retried = session.get(
+            current_url,
+            headers=headers,
+            timeout=10,
+            allow_redirects=False,
+            stream=True,
+        )
+        if retried.status_code != 200:
+            retried.close()
+            return None
+        return read_limited(retried)
+    except Exception:
+        # a half-worked replay must not fail the whole scrape: the blocked body is
+        # still worth parsing for whatever it carries
+        return None
+
+
+# "19,95€", "44.72", "1.234,56 €": prices with a separator, dots or commas
+PRICE_TEXT_RE = re.compile(r"\d+(?:[.,]\d{3})*(?:[.,]\d{1,2})?")
 
 
 def parse_price_text(text):
-    """Turns a price as rendered in text (e.g. '19,95€', '1.234,56 €') into a float, or
-    None when the text holds no number. Currency words and symbols around it are ignored."""
+    """Turns a price as rendered in text (e.g. '19,95€', '44.72', '1.234,56 €') into a
+    float, or None when the text holds no number. Currency words and symbols around it
+    are ignored."""
     if not text:
         return None
     match = PRICE_TEXT_RE.search(text.replace("\u00a0", "").replace("\u202f", ""))
     if not match:
         return None
-    number = match.group(0).replace(".", "").replace(",", ".")
-    try:
-        return float(number)
-    except ValueError:
-        return None
+    digits = re.split(r"[.,]", match.group(0))
+    if len(digits) == 1:
+        return float(digits[0])
+    if len(digits[-1]) == 3:
+        # "1.234" / "1,234": a group of three at the end is a thousand separator
+        return float("".join(digits))
+    # "61,95", "44.72", "1.234,56": the last separator carries the decimals
+    return float("".join(digits[:-1]) + "." + digits[-1])
 
 
 def is_amazon_url(url):

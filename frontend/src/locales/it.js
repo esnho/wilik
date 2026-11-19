@@ -51,8 +51,8 @@ const it = {
   'Browse wishlists': 'Sfoglia le liste',
   'All wishlists': 'Tutte le liste',
   'No wishlists available': 'Nessuna lista disponibile',
-  'Either there are none yet':
-    'Oppure non ce ne sono ancora',
+  'Either there are none yet, or the owner turned this overview off':
+    'Oppure non ce ne sono ancora, oppure il proprietario ha disattivato questo elenco',
 
   // public wishlist
   'Link not found': 'Link non trovato',
