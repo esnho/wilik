@@ -266,6 +266,8 @@ const nl = {
   'Gift directory': 'Overzicht van verlanglijstjes',
   'Show a directory of public wishlists on the login page':
     'Toon een overzicht van openbare verlanglijstjes op de inlogpagina',
+  'Show an "All wishlists" button to guests viewing a public wishlist':
+    'Toon de knop "Alle verlanglijstjes" voor bezoekers die een openbaar verlanglijstje bekijken',
   'Allow wishlist owners to opt into revealing and resetting claims on their own list':
     'Eigenaars van verlanglijstjes toestaan om reserveringen op hun eigen lijst zichtbaar te maken en vrij te geven',
   'Skip the warning when deleting an already-claimed item':

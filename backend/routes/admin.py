@@ -37,6 +37,8 @@ def update_settings():
         settings.app_name = app_name
     if "public_directory_enabled" in data:
         settings.public_directory_enabled = bool(data["public_directory_enabled"])
+    if "public_directory_button_enabled" in data:
+        settings.public_directory_button_enabled = bool(data["public_directory_button_enabled"])
     if "default_color_scheme" in data:
         if data["default_color_scheme"] not in COLOR_SCHEME_OPTIONS:
             return jsonify({"error": "Invalid color scheme"}), 400

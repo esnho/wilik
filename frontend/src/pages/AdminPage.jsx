@@ -57,6 +57,7 @@ function AdminPage({ currentUser, appName, onAppNameChange }) {
   // a dedicated error/saved state pair and submit handler per section
   const [sectionStatus, setSectionStatus] = useState({})
   const [publicDirectoryEnabled, setPublicDirectoryEnabled] = useState(true)
+  const [publicDirectoryButtonEnabled, setPublicDirectoryButtonEnabled] = useState(true)
   const [directoryError, setDirectoryError] = useState(null)
   const [directorySaved, setDirectorySaved] = useState(false)
   const [defaultColorScheme, setDefaultColorScheme] = useState('dark')
@@ -89,6 +90,7 @@ function AdminPage({ currentUser, appName, onAppNameChange }) {
       .then((response) => response.json())
       .then((data) => {
         setPublicDirectoryEnabled(data.public_directory_enabled)
+        setPublicDirectoryButtonEnabled(data.public_directory_button_enabled)
         setDefaultColorScheme(data.default_color_scheme)
         setDefaultLanguageSetting(data.default_language)
         setPublicLanguageButtonSetting(data.public_language_button_enabled)
@@ -128,7 +130,10 @@ function AdminPage({ currentUser, appName, onAppNameChange }) {
       method: 'PUT',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ public_directory_enabled: publicDirectoryEnabled }),
+      body: JSON.stringify({
+        public_directory_enabled: publicDirectoryEnabled,
+        public_directory_button_enabled: publicDirectoryButtonEnabled,
+      }),
     }).then((response) => {
       if (!response.ok) {
         response.json().then((data) => setDirectoryError(t(data.error)))
@@ -919,6 +924,14 @@ function AdminPage({ currentUser, appName, onAppNameChange }) {
             onChange={(event) => setPublicDirectoryEnabled(event.target.checked)}
           />
           {t('Show a directory of public wishlists on the login page')}
+        </label>
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={publicDirectoryButtonEnabled}
+            onChange={(event) => setPublicDirectoryButtonEnabled(event.target.checked)}
+          />
+          {t('Show an "All wishlists" button to guests viewing a public wishlist')}
         </label>
         {directoryError && <p className="form-error">{directoryError}</p>}
         <div className="gift-form__actions">

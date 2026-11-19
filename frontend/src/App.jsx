@@ -20,6 +20,10 @@ import { useI18n } from './i18n'
 import './App.css'
 
 const API_BASE = '/api'
+// caches the admin's instance-wide choice for the guests' "All wishlists" button, so repeat
+// visits don't flash it before /api/settings answers (same trick as the language settings
+// cached in I18nProvider.jsx and the color scheme in colorScheme.js)
+const GUEST_DIRECTORY_BUTTON_KEY = 'wilik-guest-directory-button'
 
 function AuthenticatedApp({ appName, onAppNameChange }) {
   const { t, languageMenuVisible } = useI18n()
@@ -128,6 +132,10 @@ function AuthenticatedApp({ appName, onAppNameChange }) {
 
 function App() {
   const [appName, setAppName] = useState('Wilik')
+  // shown until /api/settings says the admin turned the guests' "All wishlists" button off
+  const [guestDirectoryButton, setGuestDirectoryButton] = useState(
+    () => localStorage.getItem(GUEST_DIRECTORY_BUTTON_KEY) !== 'false'
+  )
   const { applyInstanceSettings } = useI18n()
 
   useEffect(() => {
@@ -137,6 +145,9 @@ function App() {
         setAppName(data.app_name)
         cacheDefaultColorScheme(data.default_color_scheme)
         applyInstanceSettings(data)
+        const showButton = Boolean(data.public_directory_button_enabled)
+        localStorage.setItem(GUEST_DIRECTORY_BUTTON_KEY, String(showButton))
+        setGuestDirectoryButton(showButton)
       })
   }, [applyInstanceSettings])
 
@@ -146,7 +157,7 @@ function App() {
 
   return (
     <Routes>
-      <Route path="/list/:token" element={<PublicWishlistPage appName={appName} />} />
+      <Route path="/list/:token" element={<PublicWishlistPage appName={appName} guestDirectoryButton={guestDirectoryButton} />} />
       <Route path="/directory" element={<GiftDirectoryPage appName={appName} />} />
       <Route path="/setup/:token" element={<AccountSetupPage appName={appName} />} />
       <Route path="/*" element={<AuthenticatedApp appName={appName} onAppNameChange={setAppName} />} />

@@ -111,6 +111,9 @@ class AppSettings(db.Model):
     app_name = db.Column(db.String(80), nullable=False, default="Wilik")
     # shows a directory of every wishlist on the login page, so visitors can find one without a share link
     public_directory_enabled = db.Column(db.Boolean, nullable=False, default=True)
+    # shows the "All wishlists" button to guests viewing a public wishlist (it links to the
+    # public directory); logged-in users keep their own navigation regardless of this toggle
+    public_directory_button_enabled = db.Column(db.Boolean, nullable=False, default=True)
     # fallback dark/light/auto for anyone who hasn't picked their own in Settings yet (stored
     # per-browser in localStorage, see colorScheme.js) -- "dark" matches the app's historical default
     default_color_scheme = db.Column(db.String(10), nullable=False, default="dark")
@@ -136,6 +139,7 @@ class AppSettings(db.Model):
         return {
             "app_name": self.app_name,
             "public_directory_enabled": self.public_directory_enabled,
+            "public_directory_button_enabled": self.public_directory_button_enabled,
             "default_color_scheme": self.default_color_scheme,
             "default_language": self.default_language,
             "public_language_button_enabled": self.public_language_button_enabled,

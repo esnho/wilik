@@ -118,7 +118,7 @@ function SingleSelectDropdown({ label, options, value, onChange }) {
   )
 }
 
-function PublicWishlistPage({ appName }) {
+function PublicWishlistPage({ appName, guestDirectoryButton = true }) {
   const { t, publicLanguageButtonEnabled, languageMenuVisible } = useI18n()
   // the admin can show it to every visitor; anyone who turned on their own navbar button gets it too
   const showLanguageButton = publicLanguageButtonEnabled || languageMenuVisible
@@ -243,9 +243,11 @@ function PublicWishlistPage({ appName }) {
             </Link>
           </div>
           <div className="topbar__actions topbar__actions--static">
-            <Link to={isLoggedIn ? '/wishlist/browse' : '/directory'}>
-              <GiftIcon /> {t('All wishlists')}
-            </Link>
+            {(isLoggedIn || guestDirectoryButton) && (
+              <Link to={isLoggedIn ? '/wishlist/browse' : '/directory'}>
+                <GiftIcon /> {t('All wishlists')}
+              </Link>
+            )}
             {showLanguageButton && <LanguageMenu />}
           </div>
         </nav>
@@ -286,9 +288,11 @@ function PublicWishlistPage({ appName }) {
           </Link>
         </div>
         <div className="topbar__actions topbar__actions--static">
-          <Link to={isLoggedIn ? '/wishlist/browse' : '/directory'}>
-            <GiftIcon /> {t('All wishlists')}
-          </Link>
+          {(isLoggedIn || guestDirectoryButton) && (
+            <Link to={isLoggedIn ? '/wishlist/browse' : '/directory'}>
+              <GiftIcon /> {t('All wishlists')}
+            </Link>
+          )}
           {showLanguageButton && <LanguageMenu />}
         </div>
       </nav>
