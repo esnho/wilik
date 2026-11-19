@@ -1,6 +1,4 @@
 // Italian translations, keyed by the exact English source text (see I18nProvider.jsx).
-// Terminology: wishlist = lista (plural liste), claim = prenotare/prenotazione, reset a claim =
-// rilasciare una prenotazione, directory = elenco delle liste, setup link = link di attivazione.
 const it = {
   // navigation and shared
   'Language': 'Lingua',
@@ -19,7 +17,7 @@ const it = {
   'Copy': 'Copia',
   'Copied!': 'Copiato!',
   '← Back': '← Indietro',
-  '← Back to wishlist': '← Torna alla tua lista',
+  '← Back to wishlist': '← Torna alla lista',
   'Something went wrong': 'Si è verificato un errore',
 
   // login and account setup
@@ -27,7 +25,7 @@ const it = {
   'Password': 'Password',
   'New password': 'Nuova password',
   'Confirm new password': 'Conferma la nuova password',
-  "New passwords don't match": 'Le nuove password non coincidono',
+  "New passwords don't match": 'Le password non coincidono',
   'Save and continue': 'Salva e continua',
   'Saving…': 'Salvataggio…',
   'Not you? Log out': 'Non sei tu? Esci',
@@ -44,7 +42,7 @@ const it = {
   'Go back': 'Torna indietro',
   'Continuing as {username}': 'Continua come {username}',
   "{username}'s account isn't set up yet. Ask your admin for your setup link.":
-    "L'account di {username} non è ancora configurato. Chiedi all'amministratore il tuo link di attivazione.",
+    "L'account {username} non è ancora configurato. Chiedi all'amministratore il tuo link di attivazione.",
   'This setup link is invalid or has expired. Ask your admin for a new one.':
     "Questo link di attivazione non è valido o è scaduto. Chiedi all'amministratore un nuovo link.",
 
@@ -53,15 +51,15 @@ const it = {
   'Browse wishlists': 'Sfoglia le liste',
   'All wishlists': 'Tutte le liste',
   'No wishlists available': 'Nessuna lista disponibile',
-  'Either there are none yet, or the owner turned this overview off':
-    'Oppure non ce ne sono ancora, oppure il proprietario ha disattivato questo elenco',
+  'Either there are none yet':
+    'Oppure non ce ne sono ancora',
 
   // public wishlist
   'Link not found': 'Link non trovato',
   "This wishlist link doesn't exist (anymore)": 'Questo link a una lista non esiste (più)',
   "Claim an item by clicking {button} so others know it's taken. The recipient won't be notified.":
-    'Prenota un regalo cliccando su {button}, così gli altri sanno che è stato prenotato. Il destinatario non riceverà alcuna notifica.',
-  'Get this gift': 'Prenota questo regalo',
+    'Segna un regalo come acquistato cliccando su {button}, così gli altri sapranno che è stato preso. Il destinatario non riceverà alcuna notifica.',
+  'Get this gift': 'Segna questo regalo come preso',
   'Sort': 'Ordina',
   'Highest rated': 'Più votati',
   'Lowest price': 'Prezzo più basso',
@@ -74,17 +72,17 @@ const it = {
   'Clear filters': 'Azzera i filtri',
   'This wishlist is empty': 'Questa lista è vuota',
   'Nothing has been added yet, check back later': 'Non è stato ancora aggiunto nulla, torna più tardi',
-  "Your name, so others know it's taken:": 'Il tuo nome, così gli altri sanno che è prenotato:',
-  'Confirm your name to manage this claim:': 'Conferma il tuo nome per gestire questa prenotazione:',
-  'Confirm your name to manage your claim:': 'Conferma il tuo nome per gestire la tua prenotazione:',
-  'Already claimed this? Manage your claim': 'Hai già prenotato questo? Gestisci la tua prenotazione',
-  'Release this gift': 'Annulla la prenotazione',
-  'Gift claimed': 'Regalo prenotato',
-  'Gift claimed — click to unclaim': 'Regalo prenotato — clicca per annullare la prenotazione',
-  'Fully claimed': 'Completamente prenotato',
-  'Fully claimed ({count} of {quantity})': 'Completamente prenotato ({count} di {quantity})',
-  'Also get this gift ({count} of {quantity} claimed)': 'Prenota anche questo regalo ({count} di {quantity} prenotati)',
-  'Also get this gift ({count} claimed)': 'Prenota anche questo regalo ({count} prenotati)',
+  "Your name, so others know it's taken:": 'Il tuo nome, così gli altri sanno che è preso:',
+  'Confirm your name to manage this claim:': 'Conferma il tuo nome per gestire questa azione:',
+  'Confirm your name to manage your claim:': 'Conferma il tuo nome per gestire la tua azione:',
+  'Already claimed this? Manage your claim': 'Hai già preso questo? Gestisci il tuo regalo',
+  'Release this gift': 'Annulla il regalo',
+  'Gift claimed': 'Regalo preso',
+  'Gift claimed — click to unclaim': 'Regalo preso — clicca per annullare',
+  'Fully claimed': 'Presi tutti',
+  'Fully claimed ({count} of {quantity})': '{count} di {quantity} già presi',
+  'Also get this gift ({count} of {quantity} claimed)': 'Prendi anche questo regalo ({count} di {quantity} già presi)',
+  'Also get this gift ({count} claimed)': 'Prendi anche questo regalo ({count} già presi)',
 
   // own wishlist and received
   'My wishlist': 'La mia lista',
