@@ -1,8 +1,9 @@
-// Checks that frontend/src/locales/nl.js matches the English texts actually in use:
-// - every t('...') key in the frontend has a Dutch translation (warning only, see below)
+// Checks that every locale file in frontend/src/locales/ matches the English texts actually
+// in use:
+// - every t('...') key in the frontend has a translation in each locale (warning only, see below)
 // - every error message the backend returns ({"error": "..."}) has one too, since the
 //   frontend shows those through t(data.error) (warning only)
-// - nl.js has no leftover keys that nothing uses anymore
+// - the locale files have no leftover keys that nothing uses anymore
 // - no new user-visible English bypasses t() (heuristic, see untranslatedPatterns)
 // - each translation ends with the same punctuation as its English text
 // Keys are the exact English text, so a changed English string silently falls back to
@@ -14,7 +15,12 @@ import { pathToFileURL } from 'node:url'
 const root = process.cwd()
 const frontendSrc = join(root, 'frontend/src')
 const backendDir = join(root, 'backend')
-const nl = (await import(pathToFileURL(join(frontendSrc, 'locales/nl.js')).href)).default
+// every locale must cover the same key set; missing translations are warnings (the app
+// shows English until a maintainer adds them), everything else is a hard problem
+const locales = [
+  { file: 'nl.js', name: 'Dutch' },
+  { file: 'it.js', name: 'Italian' },
+]
 
 function walk(dir, accept, skip = () => false) {
   const found = []
@@ -84,29 +90,40 @@ for (const file of walk(frontendSrc, (name) => name.endsWith('.jsx'), (name) => 
   })
 }
 
-const keys = new Set(Object.keys(nl))
-// problems fail the check; warnings don't. A missing Dutch translation is only a warning so
-// contributors who don't speak Dutch aren't blocked: the app shows English until a
-// maintainer adds the translation. Everything else can be fixed without knowing Dutch.
+// problems fail the check; warnings don't. A missing translation is only a warning so
+// contributors who don't speak the language aren't blocked: the app shows English until a
+// maintainer adds the translation. Everything else can be fixed without knowing the language.
+// a translation ends with the same punctuation as the English text (or with none, if it has none)
+const ending = (text) => (/[.?!:…]$/.exec(text.trim()) ?? ['nothing'])[0]
 const problems = [...untranslated]
 const warnings = []
-for (const key of frontendKeys) if (!keys.has(key)) warnings.push(`missing Dutch translation in nl.js: ${key}`)
-for (const error of backendErrors) {
-  if (!keys.has(error)) warnings.push(`missing Dutch translation in nl.js (backend error): ${error}`)
+const summaries = []
+for (const { file, name } of locales) {
+  const dictionary = (await import(pathToFileURL(join(frontendSrc, 'locales', file)).href)).default
+  const keys = new Set(Object.keys(dictionary))
+  const localeWarnings = []
+  for (const key of frontendKeys) if (!keys.has(key)) localeWarnings.push(`missing ${name} translation in ${file}: ${key}`)
+  for (const error of backendErrors) {
+    if (!keys.has(error)) localeWarnings.push(`missing ${name} translation in ${file} (backend error): ${error}`)
+  }
+  for (const key of keys) {
+    if (!frontendKeys.has(key) && !backendErrors.has(key)) problems.push(`unused in ${file}: ${key}`)
+  }
+  // a translation ends with the same punctuation as the English text (or with none, if it has none)
+  for (const [key, value] of Object.entries(dictionary)) {
+    if (ending(key) !== ending(value)) {
+      problems.push(`punctuation differs (English ends with ${ending(key)}, ${name} with ${ending(value)}): ${key}`)
+    }
+  }
+  warnings.push(...localeWarnings)
+  summaries.push(
+    `${file} OK: ${frontendKeys.size} frontend texts, ${backendErrors.size} backend errors and ` +
+      `${backendTemplates.size} backend error template(s) checked, ${localeWarnings.length} ${name} translation(s) missing`,
+  )
 }
 for (const template of backendTemplates) {
   if (!frontendKeys.has(template)) {
     problems.push(`backend f-string error has no matching t() template in the frontend: ${template}`)
-  }
-}
-for (const key of keys) {
-  if (!frontendKeys.has(key) && !backendErrors.has(key)) problems.push(`unused in nl.js: ${key}`)
-}
-// a translation ends with the same punctuation as the English text (or with none, if it has none)
-const ending = (text) => (/[.?!:…]$/.exec(text.trim()) ?? ['nothing'])[0]
-for (const [key, value] of Object.entries(nl)) {
-  if (ending(key) !== ending(value)) {
-    problems.push(`punctuation differs (English ends with ${ending(key)}, Dutch with ${ending(value)}): ${key}`)
   }
 }
 
@@ -118,7 +135,4 @@ if (problems.length > 0) {
   console.error(problems.join('\n'))
   process.exit(1)
 }
-console.log(
-  `nl.js OK: ${frontendKeys.size} frontend texts, ${backendErrors.size} backend errors and ` +
-    `${backendTemplates.size} backend error template(s) checked, ${warnings.length} Dutch translation(s) missing`,
-)
+console.log(summaries.join('\n'))

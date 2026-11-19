@@ -1,5 +1,6 @@
 import { Fragment, isValidElement, useCallback, useEffect, useMemo, useState } from 'react'
 import { I18nContext } from './i18n'
+import it from './locales/it'
 import nl from './locales/nl'
 
 const LANGUAGE_STORAGE_KEY = 'wilik-language'
@@ -12,9 +13,10 @@ const LANGUAGE_MENU_STORAGE_KEY = 'wilik-language-menu'
 // keep in sync with LANGUAGE_OPTIONS in backend/helpers.py
 const languages = {
   en: { name: 'English' },
+  it: { name: 'Italiano' },
   nl: { name: 'Nederlands' },
 }
-const translations = { en: {}, nl }
+const translations = { en: {}, it, nl }
 
 // first of the browser's preferred languages that we have, by base code (nl-BE -> nl)
 function getBrowserLanguage() {
