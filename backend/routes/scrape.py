@@ -48,8 +48,8 @@ scrape_bp = Blueprint("scrape", __name__, url_prefix="/api")
 
 
 def resolve_public_ips(hostname):
-    """Every address hostname resolves to, or None if it doesn't resolve or any of them
-    is loopback/private/link-local/reserved/multicast."""
+    """Every globally routable unicast address the hostname resolves to, or None if it
+    doesn't resolve or any result is unsuitable for an outbound public-web request."""
     try:
         addrinfo = socket.getaddrinfo(hostname, None)
     except socket.gaierror:
@@ -57,7 +57,9 @@ def resolve_public_ips(hostname):
     ips = []
     for family, _, _, _, sockaddr in addrinfo:
         ip = ipaddress.ip_address(sockaddr[0])
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+        # is_global also covers special-purpose ranges that aren't classified as private,
+        # including shared address space; multicast is never a valid scrape destination.
+        if not ip.is_global or ip.is_multicast:
             return None
         if ip not in ips:
             ips.append(ip)
