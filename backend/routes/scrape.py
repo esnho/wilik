@@ -58,8 +58,9 @@ def resolve_public_ips(hostname):
     for family, _, _, _, sockaddr in addrinfo:
         ip = ipaddress.ip_address(sockaddr[0])
         # is_global also covers special-purpose ranges that aren't classified as private,
-        # including shared address space; multicast is never a valid scrape destination.
-        if not ip.is_global or ip.is_multicast:
+        # including shared address space. Keep the reserved and multicast exclusions
+        # explicit so their intent doesn't depend on ipaddress's version-specific tables.
+        if not ip.is_global or ip.is_reserved or ip.is_multicast:
             return None
         if ip not in ips:
             ips.append(ip)

@@ -210,6 +210,40 @@ class InterstitialTestCase(unittest.TestCase):
 
 
 class ScrapeTestCase(unittest.TestCase):
+    def test_resolve_public_ips_rejects_special_purpose_addresses(self):
+        rejected = (
+            "0.0.0.0",
+            "127.0.0.1",
+            "169.254.169.254",
+            "192.0.2.1",
+            "198.18.0.1",
+            "224.0.0.1",
+            "240.0.0.1",
+            "255.255.255.255",
+            "::",
+            "::1",
+            "ff02::1",
+        )
+        for value in rejected:
+            with self.subTest(address=value), mock.patch.object(
+                scrape.socket,
+                "getaddrinfo",
+                return_value=[(socket.AF_INET, socket.SOCK_STREAM, 6, "", (value, 0))],
+            ):
+                self.assertIsNone(scrape.resolve_public_ips("special.test"))
+
+    def test_resolve_public_ips_accepts_public_unicast_addresses(self):
+        for value in ("8.8.8.8", "2001:4860:4860::8888"):
+            with self.subTest(address=value), mock.patch.object(
+                scrape.socket,
+                "getaddrinfo",
+                return_value=[(socket.AF_INET, socket.SOCK_STREAM, 6, "", (value, 0))],
+            ):
+                self.assertEqual(
+                    scrape.resolve_public_ips("public.test"),
+                    [ipaddress.ip_address(value)],
+                )
+
     def setUp(self):
         self.app = Flask(__name__)
         self.app.config.update(SECRET_KEY="test-secret", TESTING=True, LOGIN_DISABLED=True)
