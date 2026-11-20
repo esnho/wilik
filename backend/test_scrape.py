@@ -206,14 +206,19 @@ class InterstitialTestCase(unittest.TestCase):
 
     def test_amazon_details_tolerates_unrelated_page(self):
         details = scrape.amazon_details(b"<html><head><title>Not amazon</title></head></html>")
-        self.assertEqual(details, {"title": None, "price": None, "image_url": None})
+        self.assertEqual(details, {"title": None, "price": None, "price_currency": None, "image_url": None})
 
 
 class ScrapeTestCase(unittest.TestCase):
     def setUp(self):
         self.app = Flask(__name__)
         self.app.config.update(SECRET_KEY="test-secret", TESTING=True, LOGIN_DISABLED=True)
-        LoginManager(self.app)
+        manager = LoginManager(self.app)
+
+        @manager.user_loader
+        def load_user(user_id):
+            return None
+
         self.app.register_blueprint(scrape_bp)
         self.client = self.app.test_client()
 
@@ -331,6 +336,65 @@ class ScrapeTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json()["price"], 16.95)
+
+    def test_retries_when_price_is_in_another_currency(self):
+        def resolve(hostname):
+            return [ipaddress.ip_address("93.184.216.14")] if hostname in ("shop.test", "shop.example") else None
+
+        jpy_page = (
+            b'<html><head><title>Tuminy</title>'
+            b'<script type="application/ld+json">{"@context":"https://schema.org","@type":"Product",'
+            b'"name":"Tuminy","image":"https://cdn.example/img.jpg",'
+            b'"offers":{"@type":"Offer","price":11660,"priceCurrency":"JPY"}}</script>'
+            b"</head></html>"
+        )
+        eur_page = (
+            b'<html><head><title>Tuminy</title>'
+            b'<script type="application/ld+json">{"@context":"https://schema.org","@type":"Product",'
+            b'"name":"Tuminy","image":"https://cdn.example/img.jpg",'
+            b'"offers":{"@type":"Offer","price":61.95,"priceCurrency":"EUR"}}</script>'
+            b"</head></html>"
+        )
+
+        def fake_fetch_page(session, url, headers):
+            return jpy_page
+
+        fake_fetch = mock.Mock(return_value=eur_page)
+        with mock.patch.object(scrape, "resolve_public_ips", resolve), \
+                mock.patch.object(scrape, "fetch_page", fake_fetch_page), \
+                mock.patch.object(scrape, "impersonated_fetch", fake_fetch), \
+                mock.patch.object(scrape, "current_user", mock.Mock(currency="€")):
+            response = self.client.post("/api/scrape", json={"url": "https://shop.example/en/products/tuminy-m"})
+
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data["price"], 61.95)
+        self.assertNotIn("price_currency", data)
+
+    def test_drops_price_when_retry_confirms_other_currency(self):
+        def resolve(hostname):
+            return [ipaddress.ip_address("93.184.216.14")] if hostname in ("shop.test", "shop.example") else None
+
+        jpy_page = (
+            b'<html><head><title>Tuminy</title>'
+            b'<script type="application/ld+json">{"@context":"https://schema.org","@type":"Product",'
+            b'"name":"Tuminy","image":"https://cdn.example/img.jpg",'
+            b'"offers":{"@type":"Offer","price":11660,"priceCurrency":"JPY"}}</script>'
+            b"</head></html>"
+        )
+
+        def fake_fetch_page(session, url, headers):
+            return jpy_page
+
+        fake_fetch = mock.Mock(return_value=jpy_page)
+        with mock.patch.object(scrape, "resolve_public_ips", resolve), \
+                mock.patch.object(scrape, "fetch_page", fake_fetch_page), \
+                mock.patch.object(scrape, "impersonated_fetch", fake_fetch), \
+                mock.patch.object(scrape, "current_user", mock.Mock(currency="€")):
+            response = self.client.post("/api/scrape", json={"url": "https://shop.example/en/products/tuminy-m"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("price", response.get_json())
 
     def test_retries_through_impersonated_client_when_interstitial_served(self):
         def resolve(hostname):

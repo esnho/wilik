@@ -8,7 +8,7 @@ from urllib.parse import urljoin, urlparse
 import requests
 from bs4 import BeautifulSoup
 from flask import Blueprint, jsonify, request
-from flask_login import login_required
+from flask_login import current_user, login_required
 from requests.adapters import HTTPAdapter
 from urllib3.connection import HTTPConnection, HTTPSConnection
 from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
@@ -170,16 +170,35 @@ def scrape_url():
     result = extract_from_html(content)
 
     # shops behind bot protection (e.g. Shopify) sometimes let the plain client through
-    # with a page stripped of the price; one more attempt through the impersonated client
-    # fills it in. Only the price triggers the retry: a page without image data in its
-    # og tags wouldn't carry any after a refetch either, and that would retry forever
-    if not is_amazon_url(url) and result.get("price") is None:
+    # with a page stripped of the price, or with one quoted in the shop's base currency
+    # (JPY for a Japanese shop) instead of the visitor's: one more attempt through the
+    # impersonated client fills or fixes it. Only the price triggers the retry: a page
+    # without image data in its og tags wouldn't carry any after a refetch either
+    wanted_currency = SYMBOL_TO_ISO.get(getattr(current_user, "currency", None) or "", "")
+    def currency_is_wrong(view):
+        return bool(wanted_currency and view.get("price_currency") and view["price_currency"] != wanted_currency)
+
+    retry_content = None
+    if not is_amazon_url(url) and (result.get("price") is None or currency_is_wrong(result)):
         try:
             retry_content = impersonated_fetch(url, SCRAPE_HEADERS_BROWSER)
         except requests.RequestException:
             retry_content = None
-        if retry_content is not None:
-            merge_extraction(result, extract_from_html(retry_content))
+    if retry_content is not None:
+        retry = extract_from_html(retry_content)
+        if currency_is_wrong(result) and not currency_is_wrong(retry) and retry.get("price") is not None:
+            # the retry saw the page in the wishlist's currency: it replaces the price
+            # in full, merge_extraction would keep the wrong-currency one
+            result["price"] = retry.get("price")
+            result["price_currency"] = retry.get("price_currency")
+        else:
+            merge_extraction(result, retry)
+
+    # a price quoted in another currency than the wishlist's is worse than no price:
+    # an owner scanning the list can't compare it, so it's left out entirely
+    if currency_is_wrong(result):
+        result.pop("price", None)
+    result.pop("price_currency", None)
 
     if is_amazon_url(url):
         enrich_from_amazon_mobile(result, url)
@@ -233,6 +252,9 @@ def extract_from_html(content):
             result["price"] = float(price)
         except (TypeError, ValueError):
             pass
+    # kept out of the API response: scrape_url only needs it to spot prices the page
+    # quotes in the shop's base currency when the wishlist runs on another one
+    result["price_currency"] = meta("product:price:currency") or jsonld_price_currency(products)
 
     return result
 
@@ -396,6 +418,10 @@ def verify_interstitial(session, current_url, content, headers):
         return None
 
 
+# currency symbols as they appear in rendered prices, mapped to the ISO codes product
+# pages report in priceCurrency/price_format meta tags
+SYMBOL_TO_ISO = {"€": "EUR", "$": "USD", "£": "GBP"}
+
 # "19,95€", "44.72", "1.234,56 €": prices with a separator, dots or commas
 PRICE_TEXT_RE = re.compile(r"\d+(?:[.,]\d{3})*(?:[.,]\d{1,2})?")
 
@@ -472,14 +498,21 @@ def amazon_details(content):
     # the digits across several spans (whole/decimal/fraction), so gather the element
     # text without the whitespace between the spans before parsing
     price = None
+    price_text = ""
     list_price = soup.find(class_="apex-basisprice-value")
     if list_price:
         offscreen = list_price.find(class_="a-offscreen")
-        price = parse_price_text("".join((offscreen or list_price).get_text().split()))
+        price_text = "".join((offscreen or list_price).get_text().split())
+        price = parse_price_text(price_text)
     if price is None:
         current_price = soup.find(class_="priceToPay")
         if current_price:
-            price = parse_price_text("".join(current_price.get_text().split()))
+            price_text = "".join(current_price.get_text().split())
+            price = parse_price_text(price_text)
+
+    # the currency symbol in the price text (e.g. "€" on amazon.it) tells the currency
+    # the buy box quotes
+    price_currency = SYMBOL_TO_ISO.get(next((s for s in price_text if s in SYMBOL_TO_ISO), None))
 
     image = None
     main_image = soup.find("img", attrs={"data-a-image-name": "mainImage"})
@@ -490,7 +523,7 @@ def amazon_details(content):
         if landing_image:
             image = largest_dynamic_image(landing_image.get("data-a-dynamic-image")) or landing_image.get("src")
 
-    return {"title": title, "price": price, "image_url": image}
+    return {"title": title, "price": price, "price_currency": price_currency, "image_url": image}
 
 
 def enrich_from_amazon_mobile(result, url):
@@ -559,6 +592,21 @@ def jsonld_price(products):
         price = offers.get("price") or (offers.get("priceSpecification") or {}).get("price")
         if price:
             return price
+    return None
+
+
+def jsonld_price_currency(products):
+    """The priceCurrency of the same first offer jsonld_price() reads the price from,
+    or None when no offer carries one."""
+    for product in products:
+        offers = product.get("offers")
+        if isinstance(offers, list):
+            offers = offers[0] if offers else None
+        if not isinstance(offers, dict):
+            continue
+        currency = offers.get("priceCurrency") or (offers.get("priceSpecification") or {}).get("priceCurrency")
+        if currency:
+            return currency
     return None
 
 
