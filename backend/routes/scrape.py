@@ -335,12 +335,18 @@ def impersonated_fetch(url, headers):
             raise requests.RequestException(f"Refusing to fetch {current_url}: not a public address")
         port = parsed.port or (443 if parsed.scheme == "https" else 80)
         if session is None or parsed.hostname != session_host:
-            # CURLOPT_RESOLVE is fixed when the session is created, so a redirect to
-            # another host needs a fresh session; the cookie jar travels along because
-            # anti-bot pages may set cookies the next host still checks
+            # only IPv4 goes into the pin, and bracketed if IPv6 had to be used: an
+            # address family the host can't connect over makes libcurl skip straight
+            # to "connection failed" instead of falling back to the other entries
+            pinned = [ip for ip in ips if ip.version == 4] or [ip for ip in ips if ip.version == 6]
             session = impersonated_requests.Session(
                 impersonate="chrome",
-                curl_options={CurlOpt.RESOLVE: [f"{parsed.hostname}:{port}:{ip}" for ip in ips]},
+                curl_options={
+                    CurlOpt.RESOLVE: [
+                        f"{parsed.hostname}:{port}:[{ip}]" if ip.version == 6 else f"{parsed.hostname}:{port}:{ip}"
+                        for ip in pinned
+                    ]
+                },
                 cookies=session.cookies if session is not None else None,
             )
             session_host = parsed.hostname
