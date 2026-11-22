@@ -59,7 +59,7 @@ const it = {
   "This wishlist link doesn't exist (anymore)": 'Questo link a una lista non esiste (più)',
   "Claim an item by clicking {button} so others know it's taken. The recipient won't be notified.":
     'Puoi acquistare i regali sia online al link che trovi cliccando sulla sull\'immagine, sia andando in un negozio. L\'importante è che lo segni come acquistato cliccando su {button}. Il destinatario non riceverà alcuna notifica.',
-  'Get this gift': 'Segna questo regalo come acquistato.',
+  'Get this gift': 'Segna questo regalo come acquistato',
   'Sort': 'Ordina',
   'Highest rated': 'Più votati',
   'Lowest price': 'Prezzo più basso',

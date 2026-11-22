@@ -96,8 +96,10 @@ User 1 ──< Wishlist >── Gift
 2. [x] Backend API (liste + items + public + auth/admin)
 3. [x] Test backend (TDD: scritti insieme all'API — 82 verdi; la migrazione era già coperta dal punto 1)
 4. [x] Frontend (WishlistPage, SettingsPage, AdminPage, i18n) — TDD con vitest + @testing-library (16 test verdi, primo test runner del frontend: `npm test` in `frontend/`)
-5. [ ] Verifica: test verdi, `flask db upgrade` sul DB di sviluppo, prova manuale su localhost:5173
-   - ⚠️ il DB di sviluppo locale è bloccato alla revisione inesistente `e6f7a8b9c0d1` (artefatto della fase 1): serve `flask db stamp d6e7f8a9b0c1` (o reset come da AGENTS.md) prima dell'upgrade
+5. [x] Verifica (22/11/2026): test verdi (backend 82, frontend 16), lint, `check-translations` (dopo fix puntuale pre-esistente su 'Get this gift', v. sotto), `flask db upgrade` sul DB di sviluppo (stampa reale a `d5e6f7a8b9c0` + upgrade → dati migrati: 1 utente, 3 regali riassegnati), prova manuale su localhost:5173 completata (creazione/rinomina/eliminazione liste, protezione ultima lista, URL `?list=<code>`, condivisione per-lista in Impostazioni, link pubblico con claim funzionanti, fallback alla prima lista dopo eliminazione)
+   - ⚠️ ~~il DB di sviluppo locale era bloccato alla revisione inesistente `e6f7a8b9c0d1`~~ risolto: la nota originale suggeriva `stamp d6e7f8a9b0c1`, ma quello è l'id della migrazione stessa — lo stamp giusto è **`d5e6f7a8b9c0`** (lo schema era realmente pre-wishlist), poi `flask db upgrade` applica `d6e7f8a9b0c1` per davvero
+   - nota ambiente: con AirPlay Receiver attivo, macOS ControlCenter occupa `*:5000` e risponde 403 alle richieste API → per sviluppare: disattivare AirPlay Receiver, o avviare il backend su 5001 e puntare il proxy vite (`frontend/vite.config.js`) a `127.0.0.1:5001`
+   - fix extra: `frontend/src/locales/it.js` 'Get this gift' → rimosso il punto finale (rendeva rosso `check-translations` da prima della feature)
 
 ## Fuori dal perimetro (estensioni future)
 
