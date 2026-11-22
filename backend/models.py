@@ -14,13 +14,18 @@ def generate_share_token():
     return "".join(secrets.choice(SHARE_TOKEN_ALPHABET) for _ in range(8))
 
 
+def generate_list_code():
+    # 12 chars instead of the share token's 8: a list's code is permanent and can
+    # never be regenerated, so it gets a wider space to make collisions a non-event
+    return "".join(secrets.choice(SHARE_TOKEN_ALPHABET) for _ in range(12))
+
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=True)  # null = no password set yet, first login sets one
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
     email = db.Column(db.String(255), nullable=True)
-    list_name = db.Column(db.String(100), nullable=True)  # null = use the computed default below
     currency = db.Column(db.String(4), nullable=False, default="€")
     decimal_separator = db.Column(db.String(10), nullable=False, default=",")
     theme_color = db.Column(db.String(7), nullable=True)  # hex code, e.g. "#0d9488"; null = default theme
@@ -42,8 +47,7 @@ class User(UserMixin, db.Model):
     guest_sort_by_price_enabled = db.Column(db.Boolean, nullable=False, default=False)
     guest_filter_by_label_enabled = db.Column(db.Boolean, nullable=False, default=False)
     guest_filter_by_brand_enabled = db.Column(db.Boolean, nullable=False, default=False)
-    # Per-wishlist opt-in for owner claim management. This lives on User because
-    # Wilik currently has a strict one-user-to-one-wishlist data model.
+    # Per-owner opt-in for claim management, covering every wishlist they own.
     claim_management_enabled = db.Column(db.Boolean, nullable=False, default=False)
     # when true, the lock icon only shows on already-claimed items -- convenient (see at a
     # glance what's taken) but leaks claim status just by browsing your own list without
@@ -61,6 +65,9 @@ class User(UserMixin, db.Model):
     locked_until = db.Column(db.DateTime, nullable=True)
 
     gifts = db.relationship("Gift", backref="owner", cascade="all, delete-orphan")
+    # every wishlist the user owns, oldest first -- "first list" is the one the app
+    # opens by default (see Wishlist)
+    lists = db.relationship("Wishlist", backref="owner", cascade="all, delete-orphan", order_by="Wishlist.id")
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -75,7 +82,6 @@ class User(UserMixin, db.Model):
             "id": self.id,
             "username": self.username,
             "is_admin": self.is_admin,
-            "list_name": self.list_name or f"{self.username}'s wishlist",
             "currency": self.currency,
             "decimal_separator": self.decimal_separator,
             "theme_color": self.theme_color,
@@ -95,7 +101,6 @@ class User(UserMixin, db.Model):
 
     def public_dict(self):
         return {
-            "list_name": self.list_name or f"{self.username}'s wishlist",
             "currency": self.currency,
             "decimal_separator": self.decimal_separator,
             "theme_color": self.theme_color,
@@ -104,6 +109,21 @@ class User(UserMixin, db.Model):
             "guest_filter_by_label_enabled": self.guest_filter_by_label_enabled,
             "guest_filter_by_brand_enabled": self.guest_filter_by_brand_enabled,
         }
+
+
+class Wishlist(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    owner_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    # the public link (/list/<token>): regenerable on demand, so a leaked link can be
+    # retired while every other list keeps its own working link
+    share_token = db.Column(db.String(64), unique=True, nullable=False, default=generate_share_token)
+    # stable, non-guessable identifier for the owner URL (/?list=<code>): never changes,
+    # so bookmarks and history keep working, and another logged-in user can't probe
+    # someone else's lists by counting upwards
+    code = db.Column(db.String(64), unique=True, nullable=False, default=generate_list_code)
+
+    gifts = db.relationship("Gift", backref="wishlist", cascade="all, delete-orphan")
 
 
 class AppSettings(db.Model):
@@ -151,6 +171,9 @@ class AppSettings(db.Model):
 class Gift(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     owner_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    # every gift lives on exactly one of its owner's wishlists; owner_id stays denormalized
+    # so ownership checks, the Received page and claims don't need to join through wishlists
+    wishlist_id = db.Column(db.Integer, db.ForeignKey("wishlist.id"), nullable=False)
     title = db.Column(db.String(200), nullable=False)
     label = db.Column(db.String(50), nullable=True)
     brand = db.Column(db.String(80), nullable=True)

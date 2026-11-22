@@ -7,7 +7,7 @@ from flask_login import LoginManager
 from flask_migrate import Migrate, downgrade, upgrade
 from sqlalchemy import inspect
 
-from models import AppSettings, Claim, Gift, User, db
+from models import AppSettings, Claim, Gift, User, Wishlist, db
 from routes.items import items_bp
 
 
@@ -39,7 +39,10 @@ class ClaimManagementTestCase(unittest.TestCase):
             other = User(username="other", claim_management_enabled=True)
             db.session.add_all([owner, other])
             db.session.flush()
-            gift = Gift(owner_id=owner.id, title="Claimed gift", quantity=1)
+            wishlist = Wishlist(owner_id=owner.id, name="Owner's wishlist")
+            db.session.add(wishlist)
+            db.session.flush()
+            gift = Gift(owner_id=owner.id, wishlist_id=wishlist.id, title="Claimed gift", quantity=1)
             db.session.add(gift)
             db.session.flush()
             db.session.add(Claim(gift_id=gift.id, claimed_by="Alice", claim_token="secret-token"))
