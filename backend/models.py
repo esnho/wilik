@@ -123,6 +123,15 @@ class Wishlist(db.Model):
     # someone else's lists by counting upwards
     code = db.Column(db.String(64), unique=True, nullable=False, default=generate_list_code)
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "code": self.code,
+            "share_token": self.share_token,
+            "gift_count": len(self.gifts),
+        }
+
     gifts = db.relationship("Gift", backref="wishlist", cascade="all, delete-orphan")
 
 

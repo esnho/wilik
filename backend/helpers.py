@@ -1,7 +1,7 @@
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from models import User, db
+from models import AppSettings, User, Wishlist, db
 
 CURRENCY_OPTIONS = ["€", "$", "£", ""]
 DECIMAL_SEPARATOR_OPTIONS = [",", ".", "round"]
@@ -24,3 +24,10 @@ def issue_setup_token(user):
         days=SETUP_TOKEN_VALID_DAYS
     )
     return user.setup_token
+
+
+def ensure_default_list(user):
+    """Keeps the invariant that every user owns at least one wishlist (their single-list
+    name used to live on the account itself). No-op when lists already exist."""
+    if not user.lists:
+        db.session.add(Wishlist(owner_id=user.id, name=f"{user.username}'s wishlist"))

@@ -2,9 +2,20 @@ from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_required
 
 from helpers import CURRENCY_OPTIONS
-from models import AppSettings, Gift, db
+from models import AppSettings, Gift, Wishlist, db
 
 items_bp = Blueprint("items", __name__, url_prefix="/api")
+
+
+def get_owned_list_or_response(list_id):
+    """Same ownership rule as routes/lists.py: the caller's Wishlist or the 404/403
+    response to return instead."""
+    wishlist = db.session.get(Wishlist, list_id)
+    if wishlist is None:
+        return None, (jsonify({"error": "List not found"}), 404)
+    if wishlist.owner_id != current_user.id:
+        return None, (jsonify({"error": "Not your list"}), 403)
+    return wishlist, None
 
 
 def claim_management_active():
@@ -23,7 +34,14 @@ def owner_gift_dict(gift):
 @items_bp.route("/items")
 @login_required
 def get_items():
-    gifts = Gift.query.filter_by(owner_id=current_user.id).all()
+    query = Gift.query.filter_by(owner_id=current_user.id)
+    list_id = request.args.get("list_id", type=int)
+    if list_id is not None:
+        _, error = get_owned_list_or_response(list_id)
+        if error:
+            return error
+        query = query.filter_by(wishlist_id=list_id)
+    gifts = query.all()
     return jsonify([owner_gift_dict(gift) for gift in gifts])
 
 
@@ -70,8 +88,21 @@ def create_item():
     currency = data.get("currency")
     if currency is not None and currency not in CURRENCY_OPTIONS:
         return jsonify({"error": "Invalid currency"}), 400
+    list_id = data.get("list_id")
+    if list_id is None:
+        # no list specified: the gift lands on the owner's oldest list, the same one
+        # the wishlist page opens by default
+        first_list = current_user.lists[0] if current_user.lists else None
+        if first_list is None:
+            return jsonify({"error": "No list found"}), 400
+        list_id = first_list.id
+    else:
+        _, error = get_owned_list_or_response(list_id)
+        if error:
+            return error
     gift = Gift(
         owner_id=current_user.id,
+        wishlist_id=list_id,
         title=data["title"],
         label=data.get("label"),
         brand=data.get("brand"),

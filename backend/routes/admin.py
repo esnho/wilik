@@ -9,6 +9,7 @@ from helpers import (
     DECIMAL_SEPARATOR_OPTIONS,
     LANGUAGE_OPTIONS,
     THEME_COLORS,
+    ensure_default_list,
     find_user_by_username,
     issue_setup_token,
 )
@@ -94,6 +95,8 @@ def create_user():
     )
     token = None if passwordless else issue_setup_token(user)
     db.session.add(user)
+    db.session.flush()  # get user.id before the default list references it
+    ensure_default_list(user)
     db.session.commit()
     response = user.to_dict()
     if token:
@@ -154,10 +157,6 @@ def update_user(user_id):
     if new_username.lower() != user.username.lower() and find_user_by_username(new_username):
         return jsonify({"error": "Username already taken"}), 409
 
-    new_list_name = data.get("list_name", user.list_name).strip()
-    if not new_list_name:
-        return jsonify({"error": "Wishlist name can't be empty"}), 400
-
     theme_color = data.get("theme_color", user.theme_color)
     if theme_color is not None and theme_color not in THEME_COLORS:
         return jsonify({"error": "Invalid theme color"}), 400
@@ -171,7 +170,6 @@ def update_user(user_id):
         return jsonify({"error": "Invalid decimal separator"}), 400
 
     user.username = new_username
-    user.list_name = new_list_name
     user.show_in_directory = data.get("show_in_directory", user.show_in_directory)
     user.theme_color = theme_color
     user.currency = currency

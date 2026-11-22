@@ -297,10 +297,14 @@ const it = {
   'Invalid language': 'Lingua non valida',
   'Invalid theme color': 'Colore del tema non valido',
   'Login required': 'Accesso richiesto',
+  "List name can't be empty": 'Il nome della lista non può essere vuoto',
+  'List not found': 'Lista non trovata',
   'New password must be at least 8 characters': 'La nuova password deve contenere almeno 8 caratteri',
   'Not found': 'Non trovato',
   'Not logged in': 'Non connesso',
   'Not your item': 'Questo regalo non è tuo',
+  'Not your list': 'Questa lista non è tua',
+  'No list found': 'Nessuna lista trovata',
   'Nothing to do': 'Niente da fare',
   "That URL can't be fetched": "Quell'URL non può essere recuperato",
   "That name doesn't match this claim": 'Quel nome non corrisponde a questa prenotazione',
@@ -309,8 +313,8 @@ const it = {
   'Use account settings to change your own password': "Usa le impostazioni dell'account per cambiare la tua password",
   'Username already taken': 'Nome utente già in uso',
   "Username can't be empty": 'Il nome utente non può essere vuoto',
-  "Wishlist name can't be empty": 'Il nome della lista non può essere vuoto',
   "You can't delete your own account": 'Non puoi eliminare il tuo account',
+  "You can't delete your last list": 'Non puoi eliminare la tua ultima lista',
   // the lockout message is an f-string in auth.py, so Login.jsx rebuilds it from this
   // template; the placeholder is named like the Python variable so check-translations
   // can match the two. {unit} only exists in the translated text, for minuto/minuti

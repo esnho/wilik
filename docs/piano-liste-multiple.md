@@ -93,10 +93,11 @@ User 1 ──< Wishlist >── Gift
 ## 7. Ordine di lavoro
 
 1. [x] Backend dati (modelli + migrazione)
-2. [ ] Backend API (liste + items + public + auth/admin)
-3. [ ] Test backend
+2. [x] Backend API (liste + items + public + auth/admin)
+3. [x] Test backend (TDD: scritti insieme all'API — 82 verdi; la migrazione era già coperta dal punto 1)
 4. [ ] Frontend (WishlistPage, SettingsPage, AdminPage, i18n)
 5. [ ] Verifica: test verdi, `flask db upgrade` sul DB di sviluppo, prova manuale su localhost:5173
+   - ⚠️ il DB di sviluppo locale è bloccato alla revisione inesistente `e6f7a8b9c0d1` (artefatto della fase 1): serve `flask db stamp d6e7f8a9b0c1` (o reset come da AGENTS.md) prima dell'upgrade
 
 ## Fuori dal perimetro (estensioni future)
 

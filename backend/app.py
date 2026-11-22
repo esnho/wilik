@@ -8,9 +8,9 @@ from flask_migrate import Migrate
 from sqlalchemy import event
 
 from cli import print_setup_link, setup_link_command
-from helpers import issue_setup_token
+from helpers import ensure_default_list, issue_setup_token
 from models import AppSettings, User, db
-from routes import admin_bp, auth_bp, items_bp, public_bp, scrape_bp
+from routes import admin_bp, auth_bp, items_bp, lists_bp, public_bp, scrape_bp
 
 app = Flask(__name__)
 # signs the session cookie -- override via env in any real deployment
@@ -72,6 +72,7 @@ with app.app_context():
 app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(items_bp)
+app.register_blueprint(lists_bp)
 app.register_blueprint(scrape_bp)
 app.register_blueprint(public_bp)
 
@@ -87,6 +88,9 @@ def bootstrap_db():
             admin = User(username="Admin", is_admin=True, must_change_password=True)
             token = issue_setup_token(admin)
             db.session.add(admin)
+            db.session.flush()  # admin.id must exist before the default list references it
+            # even the first admin needs at least one list to put gifts on
+            ensure_default_list(admin)
             db.session.commit()
             print("Created first admin account 'Admin'. Finish setting it up with the link below.")
             print_setup_link(admin, token)

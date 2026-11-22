@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_required, login_user, logout_user
 
 from helpers import CURRENCY_OPTIONS, DECIMAL_SEPARATOR_OPTIONS, THEME_COLORS, find_user_by_username
-from models import User, db, generate_share_token
+from models import User, db
 
 LOGIN_MAX_ATTEMPTS = 5
 LOGIN_LOCKOUT_MINUTES = 15
@@ -47,7 +47,6 @@ def update_account():
         return jsonify({"error": "Invalid theme color"}), 400
 
     current_user.username = new_username
-    current_user.list_name = data.get("list_name", current_user.list_name)
     current_user.currency = currency
     current_user.decimal_separator = decimal_separator
     current_user.theme_color = theme_color
@@ -156,14 +155,6 @@ def update_password():
     current_user.set_password(new_password)
     db.session.commit()
     return "", 204
-
-
-@auth_bp.route("/account/share-token", methods=["POST"])
-@login_required
-def regenerate_share_token():
-    current_user.share_token = generate_share_token()
-    db.session.commit()
-    return jsonify(current_user.to_dict())
 
 
 @auth_bp.route("/login/lookup", methods=["POST"])

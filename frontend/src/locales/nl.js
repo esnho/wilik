@@ -300,10 +300,14 @@ const nl = {
   'Invalid language': 'Ongeldige taal',
   'Invalid theme color': 'Ongeldige themakleur',
   'Login required': 'Je moet ingelogd zijn',
+  "List name can't be empty": 'De naam van de lijst mag niet leeg zijn',
+  'List not found': 'Lijst niet gevonden',
   'New password must be at least 8 characters': 'Het nieuwe wachtwoord moet minstens 8 tekens lang zijn',
   'Not found': 'Niet gevonden',
   'Not logged in': 'Niet ingelogd',
   'Not your item': 'Dit cadeau is niet van jou',
+  'Not your list': 'Deze lijst is niet van jou',
+  'No list found': 'Geen lijst gevonden',
   'Nothing to do': 'Er is niets te doen',
   "That URL can't be fetched": 'Die URL kan niet worden opgehaald',
   "That name doesn't match this claim": 'Die naam komt niet overeen met deze reservering',
@@ -312,8 +316,8 @@ const nl = {
   'Use account settings to change your own password': 'Wijzig je eigen wachtwoord via je accountinstellingen',
   'Username already taken': 'Deze gebruikersnaam is al in gebruik',
   "Username can't be empty": 'De gebruikersnaam mag niet leeg zijn',
-  "Wishlist name can't be empty": 'De naam van het verlanglijstje mag niet leeg zijn',
   "You can't delete your own account": 'Je kunt je eigen account niet verwijderen',
+  "You can't delete your last list": 'Je kunt je laatste lijst niet verwijderen',
   // the lockout message is an f-string in auth.py, so Login.jsx rebuilds it from this
   // template; the placeholder is named like the Python variable so check-translations
   // can match the two. {unit} only exists in the Dutch text, for minuut/minuten
