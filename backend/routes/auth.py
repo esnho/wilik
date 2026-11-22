@@ -43,7 +43,9 @@ def update_account():
         return jsonify({"error": "Invalid decimal separator"}), 400
 
     theme_color = data.get("theme_color", current_user.theme_color)
-    if theme_color is not None and theme_color not in THEME_COLORS:
+    # validate only what the client actually sent: a stored value left over from
+    # an older palette must not block unrelated updates (see test above)
+    if "theme_color" in data and theme_color is not None and theme_color not in THEME_COLORS:
         return jsonify({"error": "Invalid theme color"}), 400
 
     current_user.username = new_username

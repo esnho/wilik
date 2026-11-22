@@ -68,6 +68,34 @@ class AccountApiTestCase(unittest.TestCase):
             lists = db.session.get(User, self.user_id).lists
             self.assertEqual([wishlist.name for wishlist in lists], ["Natale"])
 
+    def test_partial_update_succeeds_when_the_stored_theme_color_is_off_palette(self):
+        # a value left over from an older palette (no migration renamed it) must
+        # not block unrelated updates: only what the client sends gets validated
+        with self.app.app_context():
+            user = db.session.get(User, self.user_id)
+            user.theme_color = "#e65100"
+            db.session.commit()
+
+        self.login_as(self.user_id)
+        response = self.client.put(
+            "/api/account", json={"guest_sort_by_price_enabled": True}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.get_json()
+        self.assertTrue(body["guest_sort_by_price_enabled"])
+        # the legacy value is kept as-is, waiting for the user to pick a swatch
+        self.assertEqual(body["theme_color"], "#e65100")
+
+    def test_an_explicitly_sent_off_palette_theme_color_is_still_rejected(self):
+        self.login_as(self.user_id)
+        response = self.client.put(
+            "/api/account", json={"theme_color": "#e65100"}
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get_json()["error"], "Invalid theme color")
+
     def test_the_account_share_token_endpoint_is_gone(self):
         self.login_as(self.user_id)
         response = self.client.post("/api/account/share-token")
