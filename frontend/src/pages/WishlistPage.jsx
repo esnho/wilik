@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import GiftCard from '../components/GiftCard'
 import GiftForm from '../components/GiftForm'
-import { PlusIcon, SparkleIcon, GripIcon, SpinnerIcon } from '../components/Icons'
+import { PlusIcon, PencilIcon, TrashIcon, SparkleIcon, GripIcon, SpinnerIcon } from '../components/Icons'
 import { sortGifts } from '../sortGifts'
 import { useI18n } from '../i18n'
 
@@ -10,6 +11,9 @@ const API_URL = `${API_BASE}/items`
 
 function WishlistPage({ currentUser }) {
   const { t } = useI18n()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [lists, setLists] = useState(null)
+  const [activeListId, setActiveListId] = useState(null)
   const [items, setItems] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [isAdding, setIsAdding] = useState(false)
@@ -22,13 +26,33 @@ function WishlistPage({ currentUser }) {
     x: 0,
     y: 0,
   })
+  const [editingList, setEditingList] = useState(null) // null | 'new' | 'rename'
 
   useEffect(() => {
-    fetch(API_URL, { credentials: 'include' })
+    fetch(`${API_BASE}/lists`, { credentials: 'include' })
+      .then((response) => response.json())
+      .then((data) => {
+        setLists(data)
+        const requested = data.find((list) => list.code === searchParams.get('list'))
+        if (requested) {
+          setActiveListId(requested.id)
+        } else if (data.length > 0) {
+          // open the first list and make the URL match, so bookmarks made right now
+          // keep working (the code is stable; see docs/piano-liste-multiple.md)
+          setActiveListId(data[0].id)
+          setSearchParams({ list: data[0].code }, { replace: true })
+        }
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (activeListId == null) return
+    fetch(`${API_URL}?list_id=${activeListId}`, { credentials: 'include' })
       .then((response) => response.json())
       .then((data) => setItems(data))
       .finally(() => setIsLoading(false))
-  }, [])
+  }, [activeListId])
 
   useEffect(() => {
     fetch(`${API_BASE}/settings`)
@@ -61,7 +85,7 @@ function WishlistPage({ currentUser }) {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(values),
+      body: JSON.stringify({ ...values, list_id: activeListId }),
     })
       .then((response) => response.json())
       .then((newGift) => {
@@ -161,10 +185,118 @@ function WishlistPage({ currentUser }) {
 
   const activeItems = items.filter((item) => !item.received)
 
+  const activeList = lists?.find((list) => list.id === activeListId)
+
+  function handleListNameSubmit(name) {
+    const trimmed = name.trim()
+    if (!trimmed) {
+      setEditingList(null)
+      return
+    }
+    if (editingList === 'new') {
+      fetch(`${API_BASE}/lists`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed }),
+      })
+        .then((response) => response.json())
+        .then((created) => {
+          setLists((current) => [...current, created])
+          setActiveListId(created.id)
+          setSearchParams({ list: created.code }, { replace: true })
+        })
+    } else {
+      fetch(`${API_BASE}/lists/${activeListId}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: trimmed }),
+      })
+        .then((response) => response.json())
+        .then((updated) => {
+          setLists((current) => current.map((list) => (list.id === updated.id ? updated : list)))
+        })
+    }
+    setEditingList(null)
+  }
+
+  function handleDeleteList() {
+    const proceed = confirm(
+      t('Delete "{name}"? This will also delete its {count} gifts, including received ones.', {
+        name: activeList.name,
+        count: activeList.gift_count,
+      }),
+    )
+    if (!proceed) return
+    fetch(`${API_BASE}/lists/${activeListId}`, { method: 'DELETE', credentials: 'include' }).then(
+      (response) => {
+        if (!response.ok) {
+          response.json().then((data) => alert(t(data.error)))
+          return
+        }
+        const remaining = lists.filter((list) => list.id !== activeListId)
+        const next = remaining[0]
+        setLists(remaining)
+        setActiveListId(next.id)
+        setSearchParams({ list: next.code }, { replace: true })
+      },
+    )
+  }
+
   return (
     <>
       <div className="wishlist-toolbar">
-        <h2>{currentUser.list_name}</h2>
+        {editingList ? (
+          <ListNameInput
+            initialName={editingList === 'rename' ? activeList?.name : ''}
+            onSubmit={handleListNameSubmit}
+            onCancel={() => setEditingList(null)}
+            label={editingList === 'new' ? t('New list') : t('Rename list')}
+          />
+        ) : (
+          <>
+            <select
+              className="wishlist-toolbar__title"
+              value={activeListId ?? ''}
+              onChange={(event) => {
+                const selected = lists.find((list) => list.id === Number(event.target.value))
+                setActiveListId(selected.id)
+                setSearchParams({ list: selected.code }, { replace: true })
+              }}
+              aria-label={t('Active list')}
+            >
+              {(lists ?? []).map((list) => (
+                <option key={list.id} value={list.id}>
+                  {list.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              aria-label={t('New list')}
+              onClick={() => setEditingList('new')}
+            >
+              <PlusIcon width={16} height={16} strokeWidth={3} />
+            </button>
+            <button
+              type="button"
+              aria-label={t('Rename list')}
+              disabled={!activeList}
+              onClick={() => setEditingList('rename')}
+            >
+              <PencilIcon width={16} height={16} />
+            </button>
+            <button
+              type="button"
+              aria-label={t('Delete list')}
+              disabled={!activeList}
+              onClick={handleDeleteList}
+            >
+              <TrashIcon width={16} height={16} />
+            </button>
+          </>
+        )}
         <button
           className={isAdding ? undefined : 'btn-primary'}
           type="button"
@@ -240,6 +372,26 @@ function WishlistPage({ currentUser }) {
         </div>
       )}
     </>
+  )
+}
+
+function ListNameInput({ initialName, onSubmit, onCancel, label }) {
+  const [name, setName] = useState(initialName)
+  return (
+    <input
+      type="text"
+      className="wishlist-toolbar__title wishlist-toolbar__title-input"
+      value={name}
+      aria-label={label}
+      autoFocus
+      maxLength={100}
+      onChange={(event) => setName(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') onSubmit(name)
+        if (event.key === 'Escape') onCancel()
+      }}
+      onBlur={() => onCancel()}
+    />
   )
 }
 

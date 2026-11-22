@@ -10,13 +10,13 @@ function WishlistChooserPage() {
 
       <div className="card">
         <h3 className="card__heading">
-          <UserIcon /> {t('My wishlist')}
+          <UserIcon /> {t('My lists')}
         </h3>
         <p className="page__hint" style={{ margin: '0 0 10px' }}>
-          {t('See and manage the items on your own wishlist')}
+          {t('See and manage the items on your own wishlists')}
         </p>
         <Link to="/" className="btn-primary">
-          {t('Go to my wishlist')}
+          {t('Go to my lists')}
         </Link>
       </div>
 

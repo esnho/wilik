@@ -27,13 +27,26 @@ function SettingsPage({ currentUser, onUpdate }) {
   const [colorScheme, setColorSchemeState] = useState(getColorScheme)
   const [themeSaved, setThemeSaved] = useState(false)
   const [claimManagementSiteEnabled, setClaimManagementSiteEnabled] = useState(false)
-  const shareUrl = `${window.location.origin}/list/${currentUser.share_token}`
+  const [lists, setLists] = useState(null)
+  const [sharedListId, setSharedListId] = useState(null)
 
   useEffect(() => {
     fetch(`${API_BASE}/settings`)
       .then((response) => response.json())
       .then((data) => setClaimManagementSiteEnabled(data.claim_management_site_enabled))
   }, [])
+
+  useEffect(() => {
+    fetch(`${API_BASE}/lists`, { credentials: 'include' })
+      .then((response) => response.json())
+      .then((data) => {
+        setLists(data)
+        setSharedListId((current) => current ?? data[0]?.id ?? null)
+      })
+  }, [])
+
+  const sharedList = lists?.find((list) => list.id === sharedListId) ?? null
+  const shareUrl = sharedList ? `${window.location.origin}/list/${sharedList.share_token}` : ''
 
   // leaving Settings without saving drops the theme and language previews
   useEffect(
@@ -87,13 +100,15 @@ function SettingsPage({ currentUser, onUpdate }) {
   function handleRegenerateShareUrl() {
     if (!confirm(t('Generate a new link? Your old share link will stop working.'))) return
     setShareRegenerating(true)
-    fetch(`${API_BASE}/account/share-token`, {
+    fetch(`${API_BASE}/lists/${sharedListId}/share-token`, {
       method: 'POST',
       credentials: 'include',
     })
       .then((response) => response.json())
-      .then((updatedUser) => {
-        onUpdate(updatedUser)
+      .then((updatedList) => {
+        setLists((current) =>
+          current.map((list) => (list.id === updatedList.id ? updatedList : list)),
+        )
         setShareRegenerating(false)
       })
   }
@@ -120,7 +135,6 @@ function SettingsPage({ currentUser, onUpdate }) {
   const [passwordError, setPasswordError] = useState(null)
   const [passwordSaved, setPasswordSaved] = useState(false)
 
-  const [listName, setListName] = useState(currentUser.list_name)
   const [currency, setCurrency] = useState(currentUser.currency)
   const [decimalSeparator, setDecimalSeparator] = useState(currentUser.decimal_separator)
   const [themeColor, setThemeColor] = useState(currentUser.theme_color)
@@ -196,7 +210,6 @@ function SettingsPage({ currentUser, onUpdate }) {
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        list_name: listName,
         currency,
         decimal_separator: decimalSeparator,
       }),
@@ -303,8 +316,21 @@ function SettingsPage({ currentUser, onUpdate }) {
           <InfoIcon />
           {t('Anyone with this link can view your list and claim items.')}
         </p>
+        <label>
+          {t('List to share')}
+          <select
+            value={sharedListId ?? ''}
+            onChange={(event) => setSharedListId(Number(event.target.value))}
+          >
+            {(lists ?? []).map((list) => (
+              <option key={list.id} value={list.id}>
+                {list.name}
+              </option>
+            ))}
+          </select>
+        </label>
         <div className="inline-field">
-          <input className="share-link__input" value={shareUrl} readOnly onFocus={(event) => event.target.select()} />
+          <input className="share-link__input" aria-label={t('Share link')} value={shareUrl} readOnly onFocus={(event) => event.target.select()} />
           <button type="button" className="btn-primary" onClick={handleCopyShareUrl}>
             {shareCopied ? t('Copied!') : t('Copy')}
           </button>
@@ -324,10 +350,6 @@ function SettingsPage({ currentUser, onUpdate }) {
 
       <form className="gift-form" onSubmit={handleGeneralSubmit}>
         <h3 className="gift-form__badge">{t('General')}</h3>
-        <label>
-          {t('List name')}
-          <input value={listName} onChange={(event) => setListName(event.target.value)} required />
-        </label>
         <div className="gift-form__row">
           <label>
             {t('Currency')}

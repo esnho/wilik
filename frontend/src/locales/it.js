@@ -85,9 +85,9 @@ const it = {
   'Also get this gift ({count} claimed)': 'Prendi anche questo regalo ({count} già presi)',
 
   // own wishlist and received
-  'My wishlist': 'La mia lista',
-  'See and manage the items on your own wishlist': 'Vedi e gestisci i regali della tua lista',
-  'Go to my wishlist': 'Vai alla mia lista',
+  'My lists': 'Le mie liste',
+  'See and manage the items on your own wishlists': 'Vedi e gestisci i regali delle tue liste',
+  'Go to my lists': 'Vai alle mie liste',
   "Browse everyone's wishlists, so you can claim something to give them":
     'Sfoglia le liste di tutti, così puoi prenotare qualcosa da regalare',
   "Items you've already got, kept off your active wishlist":
@@ -185,9 +185,16 @@ const it = {
   'Generate a new link? Your old share link will stop working.':
     'Generare un nuovo link? Il tuo vecchio link di condivisione smetterà di funzionare.',
   'List my wishlist in the browsable directory': "Mostra la mia lista nell'elenco sfogliabile",
+  'List to share': 'Lista da condividere',
+  'Share link': 'Link di condivisione',
   'Wishlist settings': 'Impostazioni lista',
   'General': 'Generale',
-  'List name': 'Nome della lista',
+  'Active list': 'Lista attiva',
+  'New list': 'Nuova lista',
+  'Rename list': 'Rinomina lista',
+  'Delete list': 'Elimina lista',
+  'Delete "{name}"? This will also delete its {count} gifts, including received ones.':
+    'Eliminare "{name}"? Eliminerà anche i suoi {count} regali, compresi i ricevuti.',
   'Decimals': 'Decimali',
   'Appearance': 'Aspetto',
   'Theme color': 'Colore tema',

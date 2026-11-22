@@ -39,7 +39,6 @@ function AdminPage({ currentUser, appName, onAppNameChange }) {
   const editUsernameInputRef = useRef(null)
   const [editUsername, setEditUsername] = useState('')
   const [editIsAdmin, setEditIsAdmin] = useState(false)
-  const [editListName, setEditListName] = useState('')
   const [editShowInDirectory, setEditShowInDirectory] = useState(true)
   const [editThemeColor, setEditThemeColor] = useState(null)
   const [editCurrency, setEditCurrency] = useState('€')
@@ -294,7 +293,6 @@ function AdminPage({ currentUser, appName, onAppNameChange }) {
     setEditingUserId(user.id)
     setEditUsername(user.username)
     setEditIsAdmin(user.is_admin)
-    setEditListName(user.list_name)
     setEditShowInDirectory(user.show_in_directory)
     setEditThemeColor(user.theme_color)
     setEditCurrency(user.currency)
@@ -314,7 +312,6 @@ function AdminPage({ currentUser, appName, onAppNameChange }) {
       id: user.id,
       username: user.username,
       is_admin: user.is_admin,
-      list_name: user.list_name,
       show_in_directory: user.show_in_directory,
       theme_color: user.theme_color,
       currency: user.currency,
@@ -335,7 +332,6 @@ function AdminPage({ currentUser, appName, onAppNameChange }) {
     return (
       editUsername !== initial.username ||
       editIsAdmin !== initial.is_admin ||
-      editListName !== initial.list_name ||
       editShowInDirectory !== initial.show_in_directory ||
       editThemeColor !== initial.theme_color ||
       editCurrency !== initial.currency ||
@@ -412,7 +408,6 @@ function AdminPage({ currentUser, appName, onAppNameChange }) {
     saveUserFields(
       user,
       {
-        list_name: editListName,
         currency: editCurrency,
         decimal_separator: editDecimalSeparator,
         show_in_directory: editShowInDirectory,
@@ -645,10 +640,6 @@ function AdminPage({ currentUser, appName, onAppNameChange }) {
 
               <form className="gift-form" onSubmit={(event) => handleGeneralSubmit(event, editingUser)}>
                 <h3 className="gift-form__badge">{t('General')}</h3>
-                <label>
-                  {t('List name')}
-                  <input value={editListName} onChange={(event) => setEditListName(event.target.value)} required />
-                </label>
                 <div className="gift-form__row">
                   <label>
                     {t('Currency')}

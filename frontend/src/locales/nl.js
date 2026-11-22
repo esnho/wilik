@@ -87,9 +87,9 @@ const nl = {
   'Also get this gift ({count} claimed)': 'Dit cadeau ook reserveren ({count} gereserveerd)',
 
   // own wishlist and received
-  'My wishlist': 'Mijn verlanglijstje',
-  'See and manage the items on your own wishlist': 'Bekijk en beheer de cadeaus op je eigen verlanglijstje',
-  'Go to my wishlist': 'Naar mijn verlanglijstje',
+  'My lists': 'Mijn lijstjes',
+  'See and manage the items on your own wishlists': 'Bekijk en beheer de cadeaus op je eigen lijstjes',
+  'Go to my lists': 'Naar mijn lijstjes',
   "Browse everyone's wishlists, so you can claim something to give them":
     'Bekijk ieders verlanglijstje en reserveer iets om te geven',
   "Items you've already got, kept off your active wishlist":
@@ -187,9 +187,16 @@ const nl = {
   'Generate a new link? Your old share link will stop working.':
     'Een nieuwe link maken? Je oude deellink werkt dan niet meer.',
   'List my wishlist in the browsable directory': 'Mijn verlanglijstje tonen in het overzicht van verlanglijstjes',
+  'List to share': 'Te delen lijst',
+  'Share link': 'Deellink',
   'Wishlist settings': 'Instellingen verlanglijstje',
   'General': 'Algemeen',
-  'List name': 'Naam van de lijst',
+  'Active list': 'Actieve lijst',
+  'New list': 'Nieuwe lijst',
+  'Rename list': 'Lijst hernoemen',
+  'Delete list': 'Lijst verwijderen',
+  'Delete "{name}"? This will also delete its {count} gifts, including received ones.':
+    '"{name}" verwijderen? Dit verwijdert ook de {count} cadeaus erin, ook de ontvangen.',
   'Decimals': 'Decimalen',
   'Appearance': 'Weergave',
   'Theme color': 'Themakleur',
