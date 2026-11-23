@@ -1,27 +1,45 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { UserIcon } from './Icons'
 import { useI18n } from '../i18n'
 
 const API_BASE = '/api'
+const HOMEPAGE_LIST_LIMIT = 3
 
 function GiftDirectory() {
   const { t } = useI18n()
-  const [visible, setVisible] = useState(false)
+  const [lists, setLists] = useState([]) // empty until the directory answers (or when it's off)
 
   useEffect(() => {
     fetch(`${API_BASE}/public/directory`)
       .then((response) => response.json())
-      .then((data) => setVisible(Boolean(data.enabled) && data.lists.length > 0))
+      .then((data) => setLists(data.enabled ? data.lists : []))
   }, [])
 
-  if (!visible) return null
+  if (lists.length === 0) return null
+
+  const preview = lists.slice(0, HOMEPAGE_LIST_LIMIT)
 
   return (
     <div className="gift-directory">
       <h3>{t("Looking for someone's wishlist?")}</h3>
-      <Link to="/directory" className="btn-primary">
-        {t('Browse wishlists')}
-      </Link>
+      <ul className="gift-directory__list gift-directory__list--compact">
+        {preview.map((list) => (
+          <li key={list.share_token}>
+            <Link to={`/list/${list.share_token}`}>
+              <span className="gift-directory__item-name">{list.list_name}</span>
+              <span className="gift-directory__badge">
+                <UserIcon /> {list.username}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {lists.length > HOMEPAGE_LIST_LIMIT && (
+        <Link to="/directory" className="gift-directory__more">
+          {t('Browse wishlists')}
+        </Link>
+      )}
     </div>
   )
 }
