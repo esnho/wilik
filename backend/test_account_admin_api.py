@@ -87,6 +87,29 @@ class AccountApiTestCase(unittest.TestCase):
         # the legacy value is kept as-is, waiting for the user to pick a swatch
         self.assertEqual(body["theme_color"], "#e65100")
 
+    def test_account_update_sets_the_guest_default_sort(self):
+        self.login_as(self.user_id)
+        response = self.client.put("/api/account", json={"guest_default_sort": "price"})
+
+        self.assertEqual(response.status_code, 200)
+        body = response.get_json()
+        self.assertEqual(body["guest_default_sort"], "price")
+
+    def test_the_guest_default_sort_defaults_to_the_recommended_order(self):
+        self.login_as(self.user_id)
+        # no GET endpoint: a partial update echoes back the untouched default
+        response = self.client.put("/api/account", json={"currency": "€"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["guest_default_sort"], "recommended")
+
+    def test_an_unknown_guest_default_sort_is_rejected(self):
+        self.login_as(self.user_id)
+        response = self.client.put("/api/account", json={"guest_default_sort": "rating"})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get_json()["error"], "Invalid default sort")
+
     def test_an_explicitly_sent_off_palette_theme_color_is_still_rejected(self):
         self.login_as(self.user_id)
         response = self.client.put(
@@ -119,3 +142,21 @@ class AccountApiTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertNotIn("list_name", response.get_json())
+
+    def test_admin_user_update_sets_the_guest_default_sort(self):
+        self.login_as(self.admin_id)
+        response = self.client.put(
+            f"/api/users/{self.user_id}", json={"guest_default_sort": "price"}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["guest_default_sort"], "price")
+
+    def test_admin_user_update_rejects_an_unknown_guest_default_sort(self):
+        self.login_as(self.admin_id)
+        response = self.client.put(
+            f"/api/users/{self.user_id}", json={"guest_default_sort": "rating"}
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.get_json()["error"], "Invalid default sort")

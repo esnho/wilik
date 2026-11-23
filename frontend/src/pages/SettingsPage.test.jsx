@@ -94,3 +94,22 @@ describe('SettingsPage share section', () => {
     expect(payload.currency).toBe('EUR')
   })
 })
+
+describe('SettingsPage guest settings', () => {
+  it('saves the default visitor order together with the other guest settings', async () => {
+    const fetchMock = renderPage()
+    const user = userEvent.setup()
+
+    const orderSelect = await screen.findByLabelText('Default order for visitors')
+    await user.selectOptions(orderSelect, 'price')
+
+    // the guest form is the third section: General, Appearance, Guest...
+    await user.click(screen.getAllByRole('button', { name: 'Save' })[2])
+    await waitFor(() => {
+      expect(fetchMock.callsTo('/api/account')).toHaveLength(1)
+    })
+    const put = fetchMock.lastCallTo('/api/account')
+    const payload = JSON.parse(put.init.body)
+    expect(payload.guest_default_sort).toBe('price')
+  })
+})

@@ -82,6 +82,7 @@ class PublicApiTestCase(unittest.TestCase):
             "theme_color",
             "show_background_pattern",
             "guest_sort_by_price_enabled",
+            "guest_default_sort",
             "guest_filter_by_label_enabled",
             "guest_filter_by_brand_enabled",
         ]:

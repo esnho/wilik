@@ -45,6 +45,10 @@ class User(UserMixin, db.Model):
     # and always preserves the owner's manual drag order within a star tier, so there's no
     # separate "highest rated" mode to gate -- only the price override needs a toggle.
     guest_sort_by_price_enabled = db.Column(db.Boolean, nullable=False, default=False)
+    # which order visitors land on when opening a public list (helpers.GUEST_SORT_OPTIONS);
+    # "recommended" is the app's baseline, "price" puts the cheapest items first. Only
+    # visible to the visitor while guest_sort_by_price_enabled shows the sort dropdown
+    guest_default_sort = db.Column(db.String(10), nullable=False, default="recommended")
     guest_filter_by_label_enabled = db.Column(db.Boolean, nullable=False, default=False)
     guest_filter_by_brand_enabled = db.Column(db.Boolean, nullable=False, default=False)
     # Per-owner opt-in for claim management, covering every wishlist they own.
@@ -93,6 +97,7 @@ class User(UserMixin, db.Model):
             "share_token": self.share_token,
             "show_in_directory": self.show_in_directory,
             "guest_sort_by_price_enabled": self.guest_sort_by_price_enabled,
+            "guest_default_sort": self.guest_default_sort,
             "guest_filter_by_label_enabled": self.guest_filter_by_label_enabled,
             "guest_filter_by_brand_enabled": self.guest_filter_by_brand_enabled,
             "claim_management_enabled": self.claim_management_enabled,
@@ -106,6 +111,7 @@ class User(UserMixin, db.Model):
             "theme_color": self.theme_color,
             "show_background_pattern": self.show_background_pattern,
             "guest_sort_by_price_enabled": self.guest_sort_by_price_enabled,
+            "guest_default_sort": self.guest_default_sort,
             "guest_filter_by_label_enabled": self.guest_filter_by_label_enabled,
             "guest_filter_by_brand_enabled": self.guest_filter_by_brand_enabled,
         }

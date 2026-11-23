@@ -206,6 +206,7 @@ const nl = {
   'Lets guests browsing your list narrow it down themselves. This is handy for longer lists.':
     'Bezoekers kunnen je lijst zelf sorteren en filteren. Handig voor langere lijsten.',
   'Let guests also sort by price': 'Bezoekers ook laten sorteren op prijs',
+  'Default order for visitors': 'Standaardvolgorde voor bezoekers',
   'Let guests filter by label': 'Bezoekers laten filteren op label',
   'Let guests filter by brand': 'Bezoekers laten filteren op merk',
   'Claim management': 'Reserveringen beheren',
@@ -305,6 +306,7 @@ const nl = {
   'Invalid currency': 'Ongeldige valuta',
   'Invalid decimal separator': 'Ongeldig decimaalteken',
   'Invalid language': 'Ongeldige taal',
+  'Invalid default sort': 'Ongeldige standaardvolgorde',
   'Invalid theme color': 'Ongeldige themakleur',
   'Login required': 'Je moet ingelogd zijn',
   "List name can't be empty": 'De naam van de lijst mag niet leeg zijn',

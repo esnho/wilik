@@ -46,6 +46,7 @@ function AdminPage({ currentUser, appName, onAppNameChange }) {
   const [editShowImagePlaceholder, setEditShowImagePlaceholder] = useState(true)
   const [editShowBackgroundPattern, setEditShowBackgroundPattern] = useState(true)
   const [editGuestSortByPrice, setEditGuestSortByPrice] = useState(false)
+  const [editGuestDefaultSort, setEditGuestDefaultSort] = useState('recommended')
   const [editGuestFilterByLabel, setEditGuestFilterByLabel] = useState(false)
   const [editGuestFilterByBrand, setEditGuestFilterByBrand] = useState(false)
   const [editClaimManagementEnabled, setEditClaimManagementEnabled] = useState(false)
@@ -300,6 +301,7 @@ function AdminPage({ currentUser, appName, onAppNameChange }) {
     setEditShowImagePlaceholder(user.show_image_placeholder)
     setEditShowBackgroundPattern(user.show_background_pattern)
     setEditGuestSortByPrice(user.guest_sort_by_price_enabled)
+    setEditGuestDefaultSort(user.guest_default_sort)
     setEditGuestFilterByLabel(user.guest_filter_by_label_enabled)
     setEditGuestFilterByBrand(user.guest_filter_by_brand_enabled)
     setEditClaimManagementEnabled(user.claim_management_enabled)
@@ -319,6 +321,7 @@ function AdminPage({ currentUser, appName, onAppNameChange }) {
       show_image_placeholder: user.show_image_placeholder,
       show_background_pattern: user.show_background_pattern,
       guest_sort_by_price_enabled: user.guest_sort_by_price_enabled,
+      guest_default_sort: user.guest_default_sort,
       guest_filter_by_label_enabled: user.guest_filter_by_label_enabled,
       guest_filter_by_brand_enabled: user.guest_filter_by_brand_enabled,
       claim_management_enabled: user.claim_management_enabled,
@@ -339,6 +342,7 @@ function AdminPage({ currentUser, appName, onAppNameChange }) {
       editShowImagePlaceholder !== initial.show_image_placeholder ||
       editShowBackgroundPattern !== initial.show_background_pattern ||
       editGuestSortByPrice !== initial.guest_sort_by_price_enabled ||
+      editGuestDefaultSort !== initial.guest_default_sort ||
       editGuestFilterByLabel !== initial.guest_filter_by_label_enabled ||
       editGuestFilterByBrand !== initial.guest_filter_by_brand_enabled ||
       editClaimManagementEnabled !== initial.claim_management_enabled ||
@@ -435,6 +439,7 @@ function AdminPage({ currentUser, appName, onAppNameChange }) {
       user,
       {
         guest_sort_by_price_enabled: editGuestSortByPrice,
+        guest_default_sort: editGuestDefaultSort,
         guest_filter_by_label_enabled: editGuestFilterByLabel,
         guest_filter_by_brand_enabled: editGuestFilterByBrand,
       },
@@ -750,6 +755,16 @@ function AdminPage({ currentUser, appName, onAppNameChange }) {
                     onChange={(event) => setEditGuestSortByPrice(event.target.checked)}
                   />
                   {t('Let guests also sort by price')}
+                </label>
+                <label>
+                  {t('Default order for visitors')}
+                  <select
+                    value={editGuestDefaultSort}
+                    onChange={(event) => setEditGuestDefaultSort(event.target.value)}
+                  >
+                    <option value="recommended">{t('Highest rated')}</option>
+                    <option value="price">{t('Lowest price')}</option>
+                  </select>
                 </label>
                 <label className="checkbox-row">
                   <input

@@ -7,6 +7,7 @@ from helpers import (
     COLOR_SCHEME_OPTIONS,
     CURRENCY_OPTIONS,
     DECIMAL_SEPARATOR_OPTIONS,
+    GUEST_SORT_OPTIONS,
     LANGUAGE_OPTIONS,
     THEME_COLORS,
     ensure_default_list,
@@ -179,6 +180,9 @@ def update_user(user_id):
     user.guest_sort_by_price_enabled = data.get(
         "guest_sort_by_price_enabled", user.guest_sort_by_price_enabled
     )
+    if "guest_default_sort" in data and data["guest_default_sort"] not in GUEST_SORT_OPTIONS:
+        return jsonify({"error": "Invalid default sort"}), 400
+    user.guest_default_sort = data.get("guest_default_sort", user.guest_default_sort)
     user.guest_filter_by_label_enabled = data.get(
         "guest_filter_by_label_enabled", user.guest_filter_by_label_enabled
     )

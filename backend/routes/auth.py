@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_required, login_user, logout_user
 
-from helpers import CURRENCY_OPTIONS, DECIMAL_SEPARATOR_OPTIONS, THEME_COLORS, find_user_by_username
+from helpers import CURRENCY_OPTIONS, DECIMAL_SEPARATOR_OPTIONS, GUEST_SORT_OPTIONS, THEME_COLORS, find_user_by_username
 from models import User, db
 
 LOGIN_MAX_ATTEMPTS = 5
@@ -62,6 +62,10 @@ def update_account():
     current_user.guest_sort_by_price_enabled = data.get(
         "guest_sort_by_price_enabled", current_user.guest_sort_by_price_enabled
     )
+    # validate only what the client actually sent: a stored value is already whitelisted
+    if "guest_default_sort" in data and data["guest_default_sort"] not in GUEST_SORT_OPTIONS:
+        return jsonify({"error": "Invalid default sort"}), 400
+    current_user.guest_default_sort = data.get("guest_default_sort", current_user.guest_default_sort)
     current_user.guest_filter_by_label_enabled = data.get(
         "guest_filter_by_label_enabled", current_user.guest_filter_by_label_enabled
     )

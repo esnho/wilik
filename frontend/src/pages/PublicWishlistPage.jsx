@@ -127,9 +127,12 @@ function PublicWishlistPage({ appName, guestDirectoryButton = true }) {
   const [items, setItems] = useState([])
   const [itemsLoading, setItemsLoading] = useState(true)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [sortBy, setSortBy] = useState('recommended')
+  // null = visitor hasn't chosen yet: until they do, the wishlist falls back to the
+  // owner's default sort (owner arrives async, so the initial state can't read it)
+  const [sortBy, setSortBy] = useState(null)
   const [labelFilters, setLabelFilters] = useState([])
   const [brandFilters, setBrandFilters] = useState([])
+  const effectiveSortBy = sortBy ?? (owner?.guest_default_sort === 'price' ? 'price' : 'recommended')
 
   function toggleFilter(setFilters, value) {
     setFilters((current) => (current.includes(value) ? current.filter((v) => v !== value) : [...current, value]))
@@ -276,7 +279,7 @@ function PublicWishlistPage({ appName, guestDirectoryButton = true }) {
     .filter((item) => labelFilters.length === 0 || labelFilters.includes(item.label))
     .filter((item) => brandFilters.length === 0 || brandFilters.includes(item.brand))
 
-  const sorted = sortBy === 'price' ? sortGiftsByPrice(filtered) : sortGifts(filtered)
+  const sorted = effectiveSortBy === 'price' ? sortGiftsByPrice(filtered) : sortGifts(filtered)
 
   return (
     <div className="app" style={themeStyle(owner.theme_color)}>
@@ -309,7 +312,7 @@ function PublicWishlistPage({ appName, guestDirectoryButton = true }) {
           {showSortControl && (
             <SingleSelectDropdown
               label={t('Sort')}
-              value={sortBy}
+              value={effectiveSortBy}
               onChange={setSortBy}
               options={[
                 { value: 'recommended', label: t('Highest rated') },

@@ -204,6 +204,7 @@ const it = {
   'Lets guests browsing your list narrow it down themselves. This is handy for longer lists.':
     'Gli ospiti che sfogliano la tua lista possono ordinarla e filtrarla da soli. Utile per le liste lunghe.',
   'Let guests also sort by price': 'Consenti agli ospiti di ordinare anche per prezzo',
+  'Default order for visitors': "Ordine predefinito per i visitatori",
   'Let guests filter by label': 'Consenti agli ospiti di filtrare per etichetta',
   'Let guests filter by brand': 'Consenti agli ospiti di filtrare per marca',
   'Claim management': 'Gestione prenotazioni',
@@ -302,6 +303,7 @@ const it = {
   'Invalid currency': 'Valuta non valida',
   'Invalid decimal separator': 'Separatore decimale non valido',
   'Invalid language': 'Lingua non valida',
+  'Invalid default sort': 'Ordine predefinito non valido',
   'Invalid theme color': 'Colore del tema non valido',
   'Login required': 'Accesso richiesto',
   "List name can't be empty": 'Il nome della lista non può essere vuoto',

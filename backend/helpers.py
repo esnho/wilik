@@ -7,6 +7,10 @@ CURRENCY_OPTIONS = ["€", "$", "£", ""]
 DECIMAL_SEPARATOR_OPTIONS = [",", ".", "round"]
 THEME_COLORS = ["#5b5fef", "#d4a017", "#d2601a", "#e83b75"]
 COLOR_SCHEME_OPTIONS = ["dark", "light", "auto"]
+# initial order of a public list for visitors: "recommended" is the app's baseline
+# (rating tiers + owner's manual order, see frontend/src/sortGifts.js), "price" is
+# cheapest first; only visible while guest_sort_by_price_enabled shows the dropdown
+GUEST_SORT_OPTIONS = ["recommended", "price"]
 # "system" follows the browser's language; keep in sync with languages in frontend/src/I18nProvider.jsx
 LANGUAGE_OPTIONS = ["system", "en", "it", "nl"]
 

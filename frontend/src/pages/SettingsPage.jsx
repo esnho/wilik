@@ -141,6 +141,7 @@ function SettingsPage({ currentUser, onUpdate }) {
   const [showImagePlaceholder, setShowImagePlaceholder] = useState(currentUser.show_image_placeholder)
   const [showBackgroundPattern, setShowBackgroundPattern] = useState(currentUser.show_background_pattern)
   const [guestSortByPrice, setGuestSortByPrice] = useState(currentUser.guest_sort_by_price_enabled)
+  const [guestDefaultSort, setGuestDefaultSort] = useState(currentUser.guest_default_sort)
   const [guestFilterByLabel, setGuestFilterByLabel] = useState(currentUser.guest_filter_by_label_enabled)
   const [guestFilterByBrand, setGuestFilterByBrand] = useState(currentUser.guest_filter_by_brand_enabled)
   const [claimManagementEnabled, setClaimManagementEnabled] = useState(currentUser.claim_management_enabled)
@@ -262,6 +263,7 @@ function SettingsPage({ currentUser, onUpdate }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         guest_sort_by_price_enabled: guestSortByPrice,
+        guest_default_sort: guestDefaultSort,
         guest_filter_by_label_enabled: guestFilterByLabel,
         guest_filter_by_brand_enabled: guestFilterByBrand,
       }),
@@ -447,6 +449,16 @@ function SettingsPage({ currentUser, onUpdate }) {
             onChange={(event) => setGuestSortByPrice(event.target.checked)}
           />
           {t('Let guests also sort by price')}
+        </label>
+        <label>
+          {t('Default order for visitors')}
+          <select
+            value={guestDefaultSort}
+            onChange={(event) => setGuestDefaultSort(event.target.value)}
+          >
+            <option value="recommended">{t('Highest rated')}</option>
+            <option value="price">{t('Lowest price')}</option>
+          </select>
         </label>
         <label className="checkbox-row">
           <input
